@@ -294,3 +294,465 @@ textarea{
       <button class="statuspill" id="roleBadge"></button>
     </div>
   </div>
+  <div id="loginPage" class="grid-login">
+    <div class="card">
+      <h2 id="loginTitle"></h2>
+      <div class="muted" id="loginDesc"></div>
+
+      <label class="label" id="emailLabel"></label>
+      <input id="loginEmail" type="email" placeholder="snow@cheerfulmusic.com" />
+
+      <label class="label" id="passwordLabel"></label>
+      <input id="loginPassword" type="password" placeholder="••••••••" />
+
+      <label class="label" id="roleLabel"></label>
+      <select id="loginRole">
+        <option value="admin">Admin / 管理员</option>
+        <option value="member">Member / 成员</option>
+      </select>
+
+      <button class="mainbtn" onclick="mockLogin()" id="loginBtn"></button>
+
+      <div class="smallnote" id="demoAccountText"></div>
+    </div>
+  </div>
+
+  <div id="appPage" class="dashboard hidden">
+    <div class="sidebar">
+      <div class="sidehead" id="sidebarTitle"></div>
+
+      <button class="menubtn active" id="menuCreateBtn" onclick="showSection('create')"></button>
+      <button class="menubtn" id="menuHistoryBtn" onclick="showSection('history')"></button>
+      <button class="menubtn hidden" id="menuAdminBtn" onclick="showSection('admin')"></button>
+      <button class="menubtn" id="logoutBtn" onclick="logout()"></button>
+
+      <div class="userbox">
+        <div class="muted" id="currentUserTitle"></div>
+        <div class="username" id="currentUserName"></div>
+        <div class="muted" id="currentUserRole"></div>
+      </div>
+    </div>
+
+    <div class="mainarea">
+      <div id="sectionCreate">
+        <div class="twocol">
+          <div class="card">
+            <h2 id="createTitle"></h2>
+            <div class="muted" id="createDesc"></div>
+
+            <label class="label" id="emotionLabel"></label>
+            <textarea id="emotionInput"></textarea>
+
+            <div class="row2">
+              <div>
+                <label class="label" id="platformLabel"></label>
+                <select id="platformSelect">
+                  <option value="douyin">抖音（中文） / Douyin</option>
+                  <option value="tiktok">TikTok（英文） / TikTok</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" id="styleLabel"></label>
+                <select id="styleSelect">
+                  <option value="孤独治愈">孤独治愈 / Lonely Healing</option>
+                  <option value="女性情绪">女性情绪 / Female Emotion</option>
+                  <option value="励志成长">励志成长 / Growth</option>
+                  <option value="传统中国风">传统中国风 / Chinese Style</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row2">
+              <button class="mainbtn" onclick="generatePrompt()" id="promptBtn"></button>
+              <button class="subbtn" onclick="simulateMusic()" id="simulateBtn"></button>
+            </div>
+
+            <button class="subbtn" onclick="saveCurrent()" id="saveBtn"></button>
+
+            <div class="sectiontitle" id="promptTitle"></div>
+            <div class="box">
+              <div id="promptOutput" class="prompttext"></div>
+            </div>
+
+            <div class="sectiontitle" id="resultTitle"></div>
+            <div id="resultsArea" class="box">
+              <div class="empty" id="resultEmpty"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 id="statusTitle"></h2>
+            <div id="statusArea" class="box muted"></div>
+
+            <div class="sectiontitle" id="historyTitle"></div>
+            <div id="historyArea" class="box"></div>
+
+            <div class="sectiontitle" id="teamPreviewTitle"></div>
+            <div class="box muted" id="teamPreviewText"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sectionHistory" class="hidden">
+        <div class="card">
+          <h2 id="fullHistoryTitle"></h2>
+          <div class="muted" id="fullHistoryDesc"></div>
+          <div id="fullHistoryArea" class="box"></div>
+        </div>
+      </div>
+
+      <div id="sectionAdmin" class="hidden">
+        <div class="card">
+          <h2 id="adminTitle"></h2>
+          <div class="muted" id="adminDesc"></div>
+
+          <div class="teamitem">
+            <strong>snow@cheerfulmusic.com</strong>
+            <div class="muted" id="adminOwnerText"></div>
+          </div>
+          <div class="teamitem">
+            <strong>member1@cheerfulmusic.com</strong>
+            <div class="muted" id="member1Text"></div>
+          </div>
+          <div class="teamitem">
+            <strong>member2@cheerfulmusic.com</strong>
+            <div class="muted" id="member2Text"></div>
+          </div>
+          <div class="teamitem">
+            <strong>member3@cheerfulmusic.com</strong>
+            <div class="muted" id="member3Text"></div>
+          </div>
+          <div class="teamitem">
+            <strong>member4@cheerfulmusic.com</strong>
+            <div class="muted" id="member4Text"></div>
+          </div>
+          <div class="teamitem">
+            <strong>member5@cheerfulmusic.com</strong>
+            <div class="muted" id="member5Text"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer" id="footerTip"></div>
+    </div>
+  </div>
+  </div>
+
+<script>
+const i18n={
+zh:{
+topSub:"品牌主色已切换为 Cheerful Music 橙红色 · 6人登录骨架版",
+roleGuest:"未登录",
+roleAdmin:"管理员",
+roleMember:"成员",
+loginTitle:"登录系统",
+loginDesc:"这是 6 人团队版本的登录骨架页。当前是前端演示版，下一步将接入真实登录与数据库。",
+emailLabel:"邮箱",
+passwordLabel:"密码",
+roleLabel:"角色",
+loginBtn:"进入系统",
+demoAccountText:"管理员账号：snow@cheerfulmusic.com\n成员示意：member1@cheerfulmusic.com ～ member5@cheerfulmusic.com",
+sidebarTitle:"系统导航",
+menuCreate:"创作台",
+menuHistory:"历史记录",
+menuAdmin:"团队管理",
+logout:"退出登录",
+currentUserTitle:"当前账号",
+createTitle:"创作台",
+createDesc:"这版已经支持中英切换、品牌主色、管理员/成员视角。下一步接入真实权限系统。",
+emotionLabel:"情绪方向",
+emotionPlaceholder:"例如：孤独治愈、女性视角、扎心但克制、适合抖音、前2秒要有情绪",
+platformLabel:"平台选择",
+styleLabel:"风格选择",
+promptBtn:"自动生成 Prompt",
+simulateBtn:"模拟生成音乐结果",
+saveBtn:"保存到历史记录",
+promptTitle:"自动生成的 Prompt",
+promptEmpty:"这里会显示自动生成的 prompt。",
+resultTitle:"生成结果",
+resultEmpty:"还没有结果。先填写情绪方向，再点击生成。",
+statusTitle:"当前状态",
+statusInit:"当前还没有开始生成。建议先输入一句情绪描述，再点击“自动生成 Prompt”。",
+historyTitle:"最近记录",
+historyEmpty:"还没有历史记录。",
+teamPreviewTitle:"团队版本说明",
+teamPreviewText:"管理员可以看到全部成员入口；普通成员只看到自己的创作与记录。下一步会接真实数据库。",
+fullHistoryTitle:"完整历史记录",
+fullHistoryDesc:"这里会显示当前账号的全部历史记录。管理员后续可切换查看团队数据。",
+adminTitle:"团队管理",
+adminDesc:"这是管理员视图骨架。下一步会把 6 个账号接到真实登录系统。",
+adminOwnerText:"管理员账号 · 可查看全部成员记录",
+memberText:"成员账号 · 后续可独立登录并保留自己的记录",
+footerTip:"当前版本说明：这是 6 人登录系统的品牌化前端骨架版，已加入中英切换与角色区分。"
+},
+en:{
+topSub:"Brand color updated to Cheerful Music orange-red · 6-user login skeleton",
+roleGuest:"Guest",
+roleAdmin:"Admin",
+roleMember:"Member",
+loginTitle:"Login",
+loginDesc:"This is the 6-user team login skeleton. It is still a front-end demo. Next step: real authentication and database.",
+emailLabel:"Email",
+passwordLabel:"Password",
+roleLabel:"Role",
+loginBtn:"Enter System",
+demoAccountText:"Admin account: snow@cheerfulmusic.com\nMember examples: member1@cheerfulmusic.com ～ member5@cheerfulmusic.com",
+sidebarTitle:"Navigation",
+menuCreate:"Create",
+menuHistory:"History",
+menuAdmin:"Team Admin",
+logout:"Logout",
+currentUserTitle:"Current Account",
+createTitle:"Create Studio",
+createDesc:"This version already supports bilingual UI, brand color, and admin/member views. Next step: real permissions.",
+emotionLabel:"Emotion Direction",
+emotionPlaceholder:"For example: lonely healing, female perspective, restrained but piercing, suitable for short video, strong emotion in first 2 seconds",
+platformLabel:"Platform",
+styleLabel:"Style",
+promptBtn:"Generate Prompt",
+simulateBtn:"Simulate Music Results",
+saveBtn:"Save to History",
+promptTitle:"Generated Prompt",
+promptEmpty:"The generated prompt will appear here.",
+resultTitle:"Results",
+resultEmpty:"No results yet. Fill in the emotion direction and generate first.",
+statusTitle:"Current Status",
+statusInit:"Nothing has started yet. Enter an emotion description and click Generate Prompt.",
+historyTitle:"Recent History",
+historyEmpty:"No history yet.",
+teamPreviewTitle:"Team Notes",
+teamPreviewText:"Admin can see all member entries. Members only see their own creation and records. Next step: real database.",
+fullHistoryTitle:"Full History",
+fullHistoryDesc:"This area will show the full history for the current account. Admin will later be able to view team-wide records.",
+adminTitle:"Team Management",
+adminDesc:"This is the admin view skeleton. Next step: connect all 6 accounts to real authentication.",
+adminOwnerText:"Admin account · can view all member records",
+memberText:"Member account · will later log in independently and keep personal records",
+footerTip:"Current version: branded front-end skeleton for the 6-user login system, with bilingual UI and role separation."
+}
+};
+
+let lang="zh";
+let currentUser=null;
+let currentPrompt="";
+let currentResults=[];
+
+function t(key){return i18n[lang][key]||key;}
+
+function setLang(nextLang){
+  lang=nextLang;
+  renderTexts();
+  renderHistory();
+  renderFullHistory();
+  renderRoleBadge();
+}
+
+function renderTexts(){
+  document.getElementById("topSub").textContent=t("topSub");
+  document.getElementById("loginTitle").textContent=t("loginTitle");
+  document.getElementById("loginDesc").textContent=t("loginDesc");
+  document.getElementById("emailLabel").textContent=t("emailLabel");
+  document.getElementById("passwordLabel").textContent=t("passwordLabel");
+  document.getElementById("roleLabel").textContent=t("roleLabel");
+  document.getElementById("loginBtn").textContent=t("loginBtn");
+  document.getElementById("demoAccountText").textContent=t("demoAccountText");
+  document.getElementById("sidebarTitle").textContent=t("sidebarTitle");
+  document.getElementById("menuCreateBtn").textContent=t("menuCreate");
+  document.getElementById("menuHistoryBtn").textContent=t("menuHistory");
+  document.getElementById("menuAdminBtn").textContent=t("menuAdmin");
+  document.getElementById("logoutBtn").textContent=t("logout");
+  document.getElementById("currentUserTitle").textContent=t("currentUserTitle");
+  document.getElementById("createTitle").textContent=t("createTitle");
+  document.getElementById("createDesc").textContent=t("createDesc");
+  document.getElementById("emotionLabel").textContent=t("emotionLabel");
+  document.getElementById("emotionInput").placeholder=t("emotionPlaceholder");
+  document.getElementById("platformLabel").textContent=t("platformLabel");
+  document.getElementById("styleLabel").textContent=t("styleLabel");
+  document.getElementById("promptBtn").textContent=t("promptBtn");
+  document.getElementById("simulateBtn").textContent=t("simulateBtn");
+  document.getElementById("saveBtn").textContent=t("saveBtn");
+  document.getElementById("promptTitle").textContent=t("promptTitle");
+  document.getElementById("resultTitle").textContent=t("resultTitle");
+  document.getElementById("resultEmpty").textContent=t("resultEmpty");
+  document.getElementById("statusTitle").textContent=t("statusTitle");
+  document.getElementById("historyTitle").textContent=t("historyTitle");
+  document.getElementById("teamPreviewTitle").textContent=t("teamPreviewTitle");
+  document.getElementById("teamPreviewText").textContent=t("teamPreviewText");
+  document.getElementById("fullHistoryTitle").textContent=t("fullHistoryTitle");
+  document.getElementById("fullHistoryDesc").textContent=t("fullHistoryDesc");
+  document.getElementById("adminTitle").textContent=t("adminTitle");
+  document.getElementById("adminDesc").textContent=t("adminDesc");
+  document.getElementById("adminOwnerText").textContent=t("adminOwnerText");
+  document.getElementById("member1Text").textContent=t("memberText");
+  document.getElementById("member2Text").textContent=t("memberText");
+  document.getElementById("member3Text").textContent=t("memberText");
+  document.getElementById("member4Text").textContent=t("memberText");
+  document.getElementById("member5Text").textContent=t("memberText");
+  document.getElementById("footerTip").textContent=t("footerTip");
+  if(!currentUser){
+    document.getElementById("statusArea").innerHTML=t("statusInit");
+    document.getElementById("promptOutput").textContent=t("promptEmpty");
+  }
+}
+
+function renderRoleBadge(){
+  const badge=document.getElementById("roleBadge");
+  if(!currentUser){badge.textContent=t("roleGuest");return;}
+  badge.textContent=currentUser.role==="admin"?t("roleAdmin"):t("roleMember");
+}
+
+function mockLogin(){
+  const email=document.getElementById("loginEmail").value.trim()||"member1@cheerfulmusic.com";
+  const role=document.getElementById("loginRole").value;
+  currentUser={email,role};
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("appPage").classList.remove("hidden");
+  document.getElementById("currentUserName").textContent=email;
+  document.getElementById("currentUserRole").textContent=role==="admin"?t("roleAdmin"):t("roleMember");
+  const adminBtn=document.getElementById("menuAdminBtn");
+  if(role==="admin"){adminBtn.classList.remove("hidden")}else{adminBtn.classList.add("hidden")}
+  document.getElementById("statusArea").innerHTML=t("statusInit");
+  renderRoleBadge();
+  renderHistory();
+  renderFullHistory();
+  showSection("create");
+}
+
+function logout(){
+  currentUser=null;
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("appPage").classList.add("hidden");
+  renderRoleBadge();
+}
+
+function showSection(section){
+  document.getElementById("sectionCreate").classList.add("hidden");
+  document.getElementById("sectionHistory").classList.add("hidden");
+  document.getElementById("sectionAdmin").classList.add("hidden");
+  document.getElementById("menuCreateBtn").classList.remove("active");
+  document.getElementById("menuHistoryBtn").classList.remove("active");
+  document.getElementById("menuAdminBtn").classList.remove("active");
+  if(section==="create"){
+    document.getElementById("sectionCreate").classList.remove("hidden");
+    document.getElementById("menuCreateBtn").classList.add("active");
+  }else if(section==="history"){
+    document.getElementById("sectionHistory").classList.remove("hidden");
+    document.getElementById("menuHistoryBtn").classList.add("active");
+  }else if(section==="admin"){
+    document.getElementById("sectionAdmin").classList.remove("hidden");
+    document.getElementById("menuAdminBtn").classList.add("active");
+  }
+}
+
+function getBasePrompt(platform,style,emotion){
+  const cleanEmotion=emotion&&emotion.trim()?emotion.trim():(platform==="douyin"?"孤独治愈，女性视角，前2秒有情绪":"lonely but healing, female perspective, strong emotion in first 2 seconds");
+  if(platform==="douyin"){
+    if(style.includes("中国风")) return "very short emotional chinese-style instrumental, instant feeling in first 2 seconds, guzheng and soft ambient texture, elegant and restrained mood, minimal melody, slight echo, no intro, no buildup, suitable for short video, c-pop, inspired by: "+cleanEmotion;
+    if(style.includes("励志")) return "very short emotional piano, instant hopeful feeling in first 2 seconds, soft but strong mood, minimal melody, raw and real emotion, no intro, no buildup, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
+    if(style.includes("女性")) return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
+    return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
+  }else{
+    if(style.includes("中国风")) return "very short emotional chinese fusion instrumental, instant feeling in first 2 seconds, elegant and restrained mood, guzheng texture, minimal melody, no intro, no buildup, suitable for tiktok short video, inspired by: "+cleanEmotion;
+    if(style.includes("励志")) return "very short emotional piano, instant hopeful feeling in first 2 seconds, soft but strong emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for short video, inspired by: "+cleanEmotion;
+    if(style.includes("女性")) return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: "+cleanEmotion;
+    return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: "+cleanEmotion;
+  }
+}
+
+function generatePrompt(){
+  const emotion=document.getElementById("emotionInput").value;
+  const platform=document.getElementById("platformSelect").value;
+  const style=document.getElementById("styleSelect").value;
+  currentPrompt=getBasePrompt(platform,style,emotion);
+  document.getElementById("promptOutput").textContent=currentPrompt;
+  document.getElementById("statusArea").innerHTML=lang==="zh"
+    ?"Prompt 已生成。<br><br>平台："+(platform==="douyin"?"抖音（中文）":"TikTok（英文）")+"<br>风格："+style+"<br>状态：可继续点击“模拟生成音乐结果”"
+    :"Prompt generated.<br><br>Platform: "+(platform==="douyin"?"Douyin":"TikTok")+"<br>Style: "+style+"<br>Status: ready to simulate music results";
+}
+
+function simulateMusic(){
+  if(!currentPrompt) generatePrompt();
+  const style=document.getElementById("styleSelect").value;
+  const platform=document.getElementById("platformSelect").value;
+  currentResults=[
+    {title:"Music Result A",descZh:"前2秒情绪很直接，适合短视频停留测试。",descEn:"Strong emotion in the first 2 seconds, suitable for retention testing.",tags:["Hook",style,platform==="douyin"?"Douyin":"TikTok"]},
+    {title:"Music Result B",descZh:"更克制、更安静，更适合深夜情绪内容。",descEn:"More restrained and quieter, suitable for late-night emotional content.",tags:["Calm","Night","Loop"]},
+    {title:"Music Result C",descZh:"更重复、更抓耳，更适合测试爆款循环感。",descEn:"More repetitive and catchy, suitable for testing viral loop potential.",tags:["Catchy","Repeat","Test"]}
+  ];
+  document.getElementById("resultsArea").innerHTML=currentResults.map(item=>`
+    <div class="resultitem">
+      <strong>${item.title}</strong>
+      <div class="muted">${lang==="zh"?item.descZh:item.descEn}</div>
+      ${item.tags.map(tag=>`<span class="tag">${tag}</span>`).join("")}
+    </div>
+  `).join("");
+  document.getElementById("statusArea").innerHTML=lang==="zh"
+    ?"已模拟生成 3 条结果。<br><br>你现在可以保存本次任务，或继续修改情绪方向。"
+    :"3 mock results generated.<br><br>You can now save this task or continue adjusting the emotion direction.";
+}
+
+function saveCurrent(){
+  if(!currentUser) return;
+  const emotion=document.getElementById("emotionInput").value.trim()||(lang==="zh"?"未填写情绪":"No emotion entered");
+  const platform=document.getElementById("platformSelect").value==="douyin"?"Douyin":"TikTok";
+  const style=document.getElementById("styleSelect").value;
+  const time=new Date().toLocaleString();
+  const item={email:currentUser.email,role:currentUser.role,emotion,platform,style,prompt:currentPrompt||"",time};
+  let history=[];
+  try{history=JSON.parse(localStorage.getItem("cheerful_team_history")||"[]")}catch(e){history=[]}
+  history.unshift(item);
+  localStorage.setItem("cheerful_team_history",JSON.stringify(history.slice(0,30)));
+  renderHistory();
+  renderFullHistory();
+  document.getElementById("statusArea").innerHTML=lang==="zh"
+    ?"已保存到历史记录。<br><br>当前账号："+currentUser.email
+    :"Saved to history.<br><br>Current account: "+currentUser.email;
+}
+
+function getAllHistory(){
+  try{return JSON.parse(localStorage.getItem("cheerful_team_history")||"[]")}catch(e){return []}
+}
+
+function renderHistory(){
+  const area=document.getElementById("historyArea");
+  const all=getAllHistory();
+  if(!currentUser){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
+  const filtered=currentUser.role==="admin"?all.slice(0,5):all.filter(x=>x.email===currentUser.email).slice(0,5);
+  if(!filtered.length){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
+  area.innerHTML=filtered.map(item=>`
+    <div class="historyitem">
+      <strong>${item.time}</strong>
+      <div class="muted">${lang==="zh"
+        ?"账号："+item.email+"<br>情绪："+item.emotion+"<br>平台："+item.platform+"<br>风格："+item.style
+        :"Account: "+item.email+"<br>Emotion: "+item.emotion+"<br>Platform: "+item.platform+"<br>Style: "+item.style}
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderFullHistory(){
+  const area=document.getElementById("fullHistoryArea");
+  const all=getAllHistory();
+  if(!currentUser){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
+  const filtered=currentUser.role==="admin"?all:all.filter(x=>x.email===currentUser.email);
+  if(!filtered.length){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
+  area.innerHTML=filtered.map(item=>`
+    <div class="historyitem">
+      <strong>${item.time}</strong>
+      <div class="muted">${lang==="zh"
+        ?"账号："+item.email+"<br>情绪："+item.emotion+"<br>平台："+item.platform+"<br>风格："+item.style
+        :"Account: "+item.email+"<br>Emotion: "+item.emotion+"<br>Platform: "+item.platform+"<br>Style: "+item.style}
+      </div>
+    </div>
+  `).join("");
+}
+
+renderTexts();
+renderRoleBadge();
+renderHistory();
+renderFullHistory();
+document.getElementById("promptOutput").textContent=t("promptEmpty");
+</script>
+</body>
+</html>
+  
