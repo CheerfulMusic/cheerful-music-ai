@@ -5,169 +5,292 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Cheerful Music AI</title>
 <style>
-body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
-.wrap{max-width:1100px;margin:auto;padding:20px}
-.card{background:#121a2b;border-radius:12px;padding:20px;margin-top:20px}
-input,textarea,select{width:100%;padding:10px;margin-top:10px;border-radius:8px;background:#0e1626;color:#fff;border:1px solid #333}
-button{
-  margin-top:10px;
-  padding:12px;
-  border-radius:8px;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:linear-gradient(180deg,#0c1018 0%,#121826 100%);
+  color:#fff;
+}
+.wrap{
+  max-width:1200px;
+  margin:0 auto;
+  padding:24px;
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  margin-bottom:24px;
+}
+.brandbox{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.logo{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#F93822 0%,#ff7a3d 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 10px 30px rgba(249,56,34,.35);
+}
+.logo svg{
+  width:30px;
+  height:30px;
+  fill:#fff;
+}
+.brandtitle{
+  font-size:28px;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.brandsub{
+  font-size:13px;
+  color:#aab3c5;
+  margin-top:4px;
+}
+.topactions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.langbtn,.statuspill,.ghostbtn,.mainbtn,.subbtn{
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:700;
+}
+.langbtn{
+  background:#1b2233;
+  color:#fff;
+  padding:10px 14px;
+}
+.langbtn:hover{
+  background:#242d43;
+}
+.statuspill{
+  background:rgba(249,56,34,.14);
+  color:#ff8a7a;
+  padding:10px 14px;
+}
+.hidden{display:none !important}
+.grid-login{
+  max-width:560px;
+  margin:40px auto 0;
+}
+.card{
+  background:rgba(20,27,41,.92);
+  border:1px solid rgba(255,255,255,.06);
+  backdrop-filter:blur(6px);
+  border-radius:24px;
+  padding:24px;
+  box-shadow:0 16px 50px rgba(0,0,0,.28);
+}
+.card h2{
+  margin:0 0 10px 0;
+  font-size:24px;
+}
+.muted{
+  color:#aab3c5;
+  font-size:14px;
+  line-height:1.7;
+}
+.label{
+  display:block;
+  font-size:13px;
+  color:#c4cada;
+  margin-top:16px;
+  margin-bottom:8px;
+}
+input,textarea,select{
+  width:100%;
+  background:#0f1522;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:14px 15px;
+  font-size:14px;
+  outline:none;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:#F93822;
+  box-shadow:0 0 0 3px rgba(249,56,34,.14);
+}
+textarea{
+  min-height:96px;
+  resize:vertical;
+}
+.mainbtn{
+  width:100%;
+  margin-top:16px;
+  padding:14px 18px;
   background:#F93822;
   color:#fff;
-  border:none;
+  box-shadow:0 10px 24px rgba(249,56,34,.28);
+}
+.mainbtn:hover{
+  background:#e5331e;
+}
+.subbtn{
   width:100%;
-  font-weight:600;
+  margin-top:12px;
+  padding:14px 18px;
+  background:#20283a;
+  color:#fff;
 }
-
-button:hover{
-  background:#d9321f;
+.subbtn:hover{
+  background:#293349;
 }
-.hidden{display:none}
+.smallnote{
+  margin-top:18px;
+  padding:14px;
+  border-radius:16px;
+  background:#0f1522;
+  color:#9aa6bf;
+  font-size:13px;
+  line-height:1.8;
+}
+.dashboard{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  gap:22px;
+}
+.sidebar{
+  background:rgba(20,27,41,.92);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:24px;
+  padding:18px;
+  height:fit-content;
+  box-shadow:0 16px 50px rgba(0,0,0,.28);
+}
+.sidehead{
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:14px;
+}
+.menubtn{
+  width:100%;
+  text-align:left;
+  background:transparent;
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  padding:12px 14px;
+  margin-top:8px;
+  cursor:pointer;
+  font-size:14px;
+}
+.menubtn:hover{
+  background:#1c2436;
+}
+.menubtn.active{
+  background:rgba(249,56,34,.16);
+  color:#ff9f92;
+}
+.userbox{
+  margin-top:20px;
+  padding:14px;
+  background:#0f1522;
+  border-radius:16px;
+}
+.username{
+  font-weight:700;
+  margin-bottom:6px;
+}
+.mainarea{
+  display:grid;
+  gap:22px;
+}
+.twocol{
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:22px;
+}
+.row2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.sectiontitle{
+  margin:22px 0 10px 0;
+  font-size:18px;
+  font-weight:800;
+}
+.box{
+  background:#0f1522;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;
+  padding:14px;
+  margin-top:12px;
+}
+.prompttext{
+  white-space:pre-wrap;
+  color:#e9edf7;
+  font-size:13px;
+  line-height:1.8;
+}
+.resultitem,.historyitem,.teamitem{
+  background:#0f1522;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;
+  padding:14px;
+  margin-top:12px;
+}
+.resultitem strong,.teamitem strong{
+  display:block;
+  margin-bottom:6px;
+}
+.tag{
+  display:inline-block;
+  margin-top:8px;
+  margin-right:6px;
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:999px;
+  background:rgba(249,56,34,.14);
+  color:#ff9f92;
+}
+.empty{
+  color:#8d9ab4;
+  font-size:13px;
+  line-height:1.7;
+}
+.footer{
+  margin-top:22px;
+  text-align:center;
+  color:#76829b;
+  font-size:12px;
+}
+@media(max-width:980px){
+  .dashboard{grid-template-columns:1fr}
+  .twocol{grid-template-columns:1fr}
+  .row2{grid-template-columns:1fr}
+  .topbar{flex-direction:column;align-items:flex-start}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>Cheerful Music AI</h1>
-
-<div>
-<button onclick="setLang('zh')">中文</button>
-<button onclick="setLang('en')">English</button>
-</div>
-<div id="login">
-<div class="card">
-<h2 id="loginTitle"></h2>
-
-<input id="email" placeholder="email" />
-<input id="password" type="password" placeholder="password" />
-
-<select id="role">
-<option value="admin">Admin</option>
-<option value="member">Member</option>
-</select>
-
-<button onclick="login()" id="loginBtn"></button>
-</div>
-</div>
-
-<div id="app" class="hidden">
-
-<div class="card">
-<h2 id="createTitle"></h2>
-
-<textarea id="emotion"></textarea>
-
-<select id="platform">
-<option value="douyin">Douyin</option>
-<option value="tiktok">TikTok</option>
-</select>
-
-<select id="style">
-<option>孤独治愈</option>
-<option>女性情绪</option>
-<option>励志成长</option>
-</select>
-
-<button onclick="gen()" id="genBtn"></button>
-
-<div id="promptBox"></div>
-
-<button onclick="save()" id="saveBtn"></button>
-
-</div>
-
-<div class="card">
-<h3 id="historyTitle"></h3>
-<div id="history"></div>
-</div>
-
-</div>
-<script>
-
-let lang="zh"
-let user=null
-
-const t={
-zh:{
-loginTitle:"登录",
-loginBtn:"进入系统",
-createTitle:"创作台",
-genBtn:"生成Prompt",
-saveBtn:"保存",
-historyTitle:"历史记录"
-},
-en:{
-loginTitle:"Login",
-loginBtn:"Enter",
-createTitle:"Create",
-genBtn:"Generate",
-saveBtn:"Save",
-historyTitle:"History"
-}
-}
-
-function setLang(l){
-lang=l
-render()
-}
-
-function render(){
-document.getElementById("loginTitle").innerText=t[lang].loginTitle
-document.getElementById("loginBtn").innerText=t[lang].loginBtn
-document.getElementById("createTitle").innerText=t[lang].createTitle
-document.getElementById("genBtn").innerText=t[lang].genBtn
-document.getElementById("saveBtn").innerText=t[lang].saveBtn
-document.getElementById("historyTitle").innerText=t[lang].historyTitle
-}
-
-function login(){
-let email=document.getElementById("email").value||"member1"
-let role=document.getElementById("role").value
-user={email,role}
-
-document.getElementById("login").classList.add("hidden")
-document.getElementById("app").classList.remove("hidden")
-
-loadHistory()
-}
-
-function gen(){
-let e=document.getElementById("emotion").value
-let prompt="very short emotional piano, "+e
-document.getElementById("promptBox").innerText=prompt
-}
-
-function save(){
-let e=document.getElementById("emotion").value
-let data=JSON.parse(localStorage.getItem("hist")||"[]")
-
-data.unshift({
-email:user.email,
-emotion:e,
-time:new Date().toLocaleString()
-})
-
-localStorage.setItem("hist",JSON.stringify(data))
-
-loadHistory()
-}
-
-function loadHistory(){
-let data=JSON.parse(localStorage.getItem("hist")||"[]")
-
-let html=data.map(i=>`
-<div>
-${i.time}<br/>
-${i.email}<br/>
-${i.emotion}
-</div>
-`).join("")
-
-document.getElementById("history").innerHTML=html
-}
-
-render()
-
-</script>
-</body>
-</html>
+  <div class="topbar">
+    <div class="brandbox">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2c.55 0 1 .45 1 1v5.3l2.2-2.2a1 1 0 1 1 1.4 1.4L14.4 9.7H17a1 1 0 1 1 0 2h-3l2.56 2.15a1 1 0 1 1-1.28 1.54L13 13.56V17a1 1 0 1 1-2 0v-3.44l-2.28 1.9a1 1 0 1 1-1.28-1.54L10 11.7H7a1 1 0 1 1 0-2h2.6L7.4 7.5a1 1 0 1 1 1.4-1.4L11 8.3V3c0-.55.45-1 1-1z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brandtitle">Cheerful Music AI</div>
+        <div class="brandsub" id="topSub"></div>
+      </div>
+    </div>
+    <div class="topactions">
+      <button class="langbtn" onclick="setLang('zh')">中文</button>
+      <button class="langbtn" onclick="setLang('en')">English</button>
+      <button class="statuspill" id="roleBadge"></button>
+    </div>
+  </div>
