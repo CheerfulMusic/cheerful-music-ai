@@ -3,793 +3,803 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheerful Music Login</title>
+  <title>Cheerful Music System</title>
   <style>
-    :root{
-      --brand:#F93822;
-      --brand-dark:#e4311d;
-      --text:#18181c;
-      --sub:#7d7d86;
-      --line:#ececef;
-      --bg:#f6f6f7;
-      --white:#ffffff;
-      --shadow:0 16px 50px rgba(0,0,0,.08);
-      --radius:28px;
+    :root {
+      --brand: #F93822;
+      --brand-dark: #d92f1c;
+      --brand-light: #fff2ef;
+      --text: #141414;
+      --subtext: #666666;
+      --line: rgba(20,20,20,0.08);
+      --white: #ffffff;
+      --bg: linear-gradient(135deg, #fff8f6 0%, #ffffff 45%, #fff1ee 100%);
+      --shadow: 0 20px 60px rgba(249, 56, 34, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
     }
 
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
 
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1320px;
+      min-height: 780px;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(22px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .left {
+      padding: 42px 42px 34px;
+      position: relative;
       background:
-        radial-gradient(circle at 85% 15%, rgba(249,56,34,.08), transparent 18%),
-        radial-gradient(circle at 15% 85%, rgba(249,56,34,.05), transparent 22%),
-        var(--bg);
-      color:var(--text);
-      min-height:100vh;
+        radial-gradient(circle at top left, rgba(249,56,34,0.16), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.92));
     }
 
-    .wrap{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-
-    .shell{
-      width:100%;
-      max-width:1320px;
-      min-height:760px;
-      background:rgba(255,255,255,.78);
-      border:1px solid rgba(255,255,255,.7);
-      backdrop-filter:blur(18px);
-      border-radius:36px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      display:grid;
-      grid-template-columns: 1.02fr 1fr;
-    }
-
-    .left{
-      position:relative;
-      padding:48px 42px 38px;
+    .right {
+      padding: 42px 34px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.84)),
-        linear-gradient(135deg, rgba(249,56,34,.06), transparent 45%);
-      border-right:1px solid rgba(0,0,0,.05);
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,245,0.98));
+      border-left: 1px solid rgba(20,20,20,0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 34px;
     }
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:14px;
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
-    .brand img{
-      width:56px;
-      height:auto;
-      display:block;
-      object-fit:contain;
+    .brand-text .mini {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--brand);
+      font-weight: 700;
     }
 
-    .brand-text{
-      line-height:1;
+    .brand-text h1 {
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.03em;
     }
 
-    .brand-text .cn{
-      font-size:24px;
-      font-weight:700;
-      letter-spacing:.2px;
+    .lang-switch {
+      display: inline-flex;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.04);
     }
 
-    .brand-text .en{
-      margin-top:6px;
-      font-size:11px;
-      letter-spacing:2px;
-      color:var(--sub);
-      text-transform:uppercase;
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: var(--subtext);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.25s ease;
     }
 
-    .lang-switch{
-      display:flex;
-      align-items:center;
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:999px;
-      padding:4px;
-      gap:4px;
-      box-shadow:0 6px 18px rgba(0,0,0,.04);
+    .lang-btn.active {
+      background: var(--brand);
+      color: #fff;
     }
 
-    .lang-btn{
-      border:none;
-      background:transparent;
-      color:var(--sub);
-      padding:10px 14px;
-      border-radius:999px;
-      font-size:13px;
-      font-weight:600;
-      cursor:pointer;
-      transition:.25s ease;
+    .hero {
+      margin-bottom: 28px;
+      max-width: 90%;
     }
 
-    .lang-btn.active{
-      background:var(--brand);
-      color:#fff;
+    .hero h2 {
+      font-size: 56px;
+      line-height: 1.04;
+      letter-spacing: -0.05em;
+      font-weight: 850;
+      margin-bottom: 16px;
     }
 
-    .hero{
-      margin-top:34px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      flex:1;
+    .hero h2 span {
+      color: var(--brand);
     }
 
-    .tag{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      width:max-content;
-      padding:8px 14px;
-      background:rgba(249,56,34,.08);
-      color:var(--brand);
-      border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      letter-spacing:.6px;
-      text-transform:uppercase;
-      margin-bottom:20px;
+    .hero p {
+      font-size: 17px;
+      color: var(--subtext);
+      line-height: 1.75;
+      max-width: 720px;
     }
 
-    .hero h1{
-      font-size:56px;
-      line-height:1.02;
-      letter-spacing:-1.8px;
-      max-width:560px;
+    .highlight-card {
+      margin-top: 26px;
+      background: linear-gradient(135deg, rgba(249,56,34,0.96), rgba(217,47,28,0.96));
+      color: #fff;
+      border-radius: 24px;
+      padding: 24px 24px 22px;
+      box-shadow: 0 18px 50px rgba(249, 56, 34, 0.24);
     }
 
-    .hero p{
-      margin-top:18px;
-      max-width:520px;
-      font-size:16px;
-      line-height:1.8;
-      color:var(--sub);
+    .highlight-card .tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.88;
+      margin-bottom: 12px;
     }
 
-    .concept{
-      margin-top:30px;
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:14px;
-      max-width:580px;
+    .highlight-card h3 {
+      font-size: 24px;
+      line-height: 1.25;
+      margin-bottom: 10px;
     }
 
-    .concept-card{
-      background:rgba(255,255,255,.8);
-      border:1px solid var(--line);
-      border-radius:20px;
-      padding:18px 16px;
-      min-height:112px;
+    .highlight-card p {
+      font-size: 14px;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.92);
     }
 
-    .concept-card .num{
-      font-size:12px;
-      color:var(--brand);
-      font-weight:800;
-      letter-spacing:1px;
-      text-transform:uppercase;
+    .members-wrap {
+      margin-top: 28px;
     }
 
-    .concept-card h3{
-      margin-top:12px;
-      font-size:16px;
-      font-weight:700;
+    .members-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
     }
 
-    .concept-card p{
-      margin-top:8px;
-      font-size:13px;
-      line-height:1.6;
-      color:var(--sub);
+    .members-head h4 {
+      font-size: 18px;
+      font-weight: 800;
     }
 
-    .footer-note{
-      margin-top:28px;
-      font-size:12px;
-      color:#9a9aa2;
-      letter-spacing:.3px;
+    .members-head span {
+      color: var(--subtext);
+      font-size: 13px;
     }
 
-    .right{
-      position:relative;
-      padding:36px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:
-        radial-gradient(circle at 15% 15%, rgba(249,56,34,.08), transparent 20%),
-        radial-gradient(circle at 85% 80%, rgba(249,56,34,.06), transparent 24%),
-        #fbfbfc;
+    .members-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
     }
 
-    .panel{
-      width:100%;
-      max-width:580px;
-      background:rgba(255,255,255,.96);
-      border:1px solid var(--line);
-      border-radius:32px;
-      box-shadow:0 20px 60px rgba(0,0,0,.08);
-      padding:28px;
+    .member-card {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(20,20,20,0.06);
+      border-radius: 20px;
+      padding: 18px 16px;
+      box-shadow: 0 8px 24px rgba(20,20,20,0.04);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      cursor: pointer;
     }
 
-    .panel-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:22px;
+    .member-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(249,56,34,0.18);
+      box-shadow: 0 18px 40px rgba(249,56,34,0.12);
     }
 
-    .panel-title{
-      font-size:28px;
-      font-weight:800;
-      letter-spacing:-.7px;
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--brand-light);
+      color: var(--brand);
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 14px;
     }
 
-    .panel-sub{
-      margin-top:6px;
-      color:var(--sub);
-      font-size:14px;
-      line-height:1.6;
+    .member-name {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
 
-    .status-dot{
-      width:14px;
-      height:14px;
-      background:var(--brand);
-      border-radius:50%;
-      box-shadow:0 0 0 8px rgba(249,56,34,.12);
+    .member-role {
+      font-size: 13px;
+      color: var(--subtext);
+      line-height: 1.5;
     }
 
-    .form-box{
-      margin-top:18px;
-      padding:18px;
-      background:#fafafb;
-      border:1px solid var(--line);
-      border-radius:24px;
+    .login-panel {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
     }
 
-    .label{
-      font-size:13px;
-      color:var(--sub);
-      margin-bottom:10px;
-      display:block;
+    .login-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brand-light);
+      color: var(--brand);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
     }
 
-    .input-wrap{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:0 16px;
-      transition:.25s ease;
+    .login-title {
+      font-size: 34px;
+      line-height: 1.12;
+      font-weight: 850;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
     }
 
-    .input-wrap:focus-within{
-      border-color:rgba(249,56,34,.55);
-      box-shadow:0 0 0 4px rgba(249,56,34,.10);
+    .login-subtitle {
+      color: var(--subtext);
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 28px;
     }
 
-    .input-wrap span{
-      font-size:18px;
+    .form-group {
+      margin-bottom: 16px;
     }
 
-    input{
-      width:100%;
-      height:56px;
-      border:none;
-      outline:none;
-      font-size:16px;
-      background:transparent;
-      color:var(--text);
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
     }
 
-    .primary-btn{
-      width:100%;
-      margin-top:14px;
-      height:56px;
-      border:none;
-      border-radius:18px;
-      background:var(--brand);
-      color:#fff;
-      font-size:16px;
-      font-weight:800;
-      cursor:pointer;
-      transition:.25s ease;
-      box-shadow:0 10px 24px rgba(249,56,34,.22);
+    .input-wrap {
+      position: relative;
     }
 
-    .primary-btn:hover{
-      background:var(--brand-dark);
-      transform:translateY(-1px);
+    .form-input {
+      width: 100%;
+      height: 56px;
+      border: 1px solid rgba(20,20,20,0.08);
+      background: rgba(255,255,255,0.95);
+      border-radius: 16px;
+      padding: 0 18px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.25s ease;
+      color: var(--text);
     }
 
-    .tips{
-      margin-top:12px;
-      font-size:12px;
-      line-height:1.7;
-      color:#9a9aa2;
+    .form-input:focus {
+      border-color: rgba(249,56,34,0.36);
+      box-shadow: 0 0 0 4px rgba(249,56,34,0.08);
     }
 
-    .members{
-      margin-top:20px;
+    .password-wrap {
+      position: relative;
     }
 
-    .members-title{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:12px;
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--brand);
+      cursor: pointer;
     }
 
-    .members-title h3{
-      font-size:15px;
-      font-weight:800;
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0 22px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .members-title span{
-      font-size:12px;
-      color:var(--sub);
+    .remember {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--subtext);
     }
 
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(2,1fr);
-      gap:12px;
+    .remember input {
+      accent-color: var(--brand);
     }
 
-    .member{
-      border:1px solid var(--line);
-      background:#fff;
-      border-radius:20px;
-      padding:14px;
-      cursor:pointer;
-      transition:.22s ease;
-      display:flex;
-      align-items:center;
-      gap:12px;
+    .forgot {
+      color: var(--brand);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
     }
 
-    .member:hover{
-      border-color:rgba(249,56,34,.35);
-      transform:translateY(-1px);
-      box-shadow:0 10px 24px rgba(0,0,0,.05);
+    .primary-btn {
+      width: 100%;
+      height: 58px;
+      border: none;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 16px 34px rgba(249,56,34,0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .avatar{
-      width:42px;
-      height:42px;
-      border-radius:14px;
-      background:linear-gradient(135deg, rgba(249,56,34,.16), rgba(249,56,34,.06));
-      color:var(--brand);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:800;
-      font-size:14px;
-      flex-shrink:0;
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(249,56,34,0.28);
     }
 
-    .member-info{
-      min-width:0;
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 24px 0 18px;
+      color: #999;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .member-name{
-      font-size:14px;
-      font-weight:800;
-      color:var(--text);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(20,20,20,0.08);
     }
 
-    .member-role{
-      margin-top:4px;
-      font-size:12px;
-      color:var(--sub);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
-    .bottom-mini{
-      margin-top:20px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding-top:16px;
-      border-top:1px solid var(--line);
+    .quick-btn {
+      border: 1px solid rgba(20,20,20,0.08);
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      transition: 0.25s ease;
     }
 
-    .mini-left{
-      font-size:12px;
-      color:#9a9aa2;
-      line-height:1.7;
+    .quick-btn:hover {
+      border-color: rgba(249,56,34,0.22);
+      color: var(--brand);
+      background: rgba(249,56,34,0.03);
     }
 
-    .mini-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:9px 12px;
-      border-radius:999px;
-      background:#fff5f3;
-      color:var(--brand);
-      font-size:12px;
-      font-weight:800;
-      white-space:nowrap;
+    .foot-note {
+      margin-top: 24px;
+      color: #999;
+      font-size: 12px;
+      line-height: 1.8;
+      text-align: center;
     }
 
-    .bg-orbit{
-      position:absolute;
-      right:-110px;
-      top:-90px;
-      width:280px;
-      height:280px;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(249,56,34,.12), rgba(249,56,34,0) 68%);
-      pointer-events:none;
+    .member-card.active-member {
+      border-color: rgba(249,56,34,0.28);
+      background: rgba(249,56,34,0.05);
+      box-shadow: 0 16px 36px rgba(249,56,34,0.10);
     }
 
-    .bg-orbit2{
-      position:absolute;
-      left:-80px;
-      bottom:-80px;
-      width:220px;
-      height:220px;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(249,56,34,.08), rgba(249,56,34,0) 70%);
-      pointer-events:none;
-    }
-
-    @media (max-width: 1080px){
-      .shell{
-        grid-template-columns:1fr;
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
       }
-      .left{
-        border-right:none;
-        border-bottom:1px solid rgba(0,0,0,.05);
+
+      .right {
+        border-left: none;
+        border-top: 1px solid rgba(20,20,20,0.06);
       }
-      .hero h1{
-        font-size:44px;
+
+      .hero {
+        max-width: 100%;
       }
     }
 
-    @media (max-width: 680px){
-      .wrap{
-        padding:12px;
+    @media (max-width: 768px) {
+      .page {
+        padding: 12px;
       }
-      .shell{
-        min-height:auto;
-        border-radius:24px;
+
+      .shell {
+        min-height: auto;
+        border-radius: 24px;
       }
-      .left, .right{
-        padding:20px;
+
+      .left,
+      .right {
+        padding: 24px 18px;
       }
-      .brand img{
-        width:46px;
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
       }
-      .brand-text .cn{
-        font-size:20px;
+
+      .brand-text h1 {
+        font-size: 24px;
       }
-      .hero{
-        margin-top:22px;
+
+      .hero h2 {
+        font-size: 36px;
       }
-      .hero h1{
-        font-size:34px;
-        line-height:1.08;
+
+      .hero p {
+        font-size: 15px;
       }
-      .hero p{
-        font-size:14px;
-        line-height:1.75;
+
+      .members-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .concept{
-        grid-template-columns:1fr;
+
+      .login-title {
+        font-size: 28px;
       }
-      .panel{
-        padding:18px;
-        border-radius:24px;
+
+      .quick-grid {
+        grid-template-columns: 1fr;
       }
-      .panel-title{
-        font-size:24px;
+    }
+
+    @media (max-width: 480px) {
+      .members-grid {
+        grid-template-columns: 1fr;
       }
-      .grid{
-        grid-template-columns:1fr;
+
+      .hero h2 {
+        font-size: 30px;
       }
-      .bottom-mini{
-        flex-direction:column;
-        align-items:flex-start;
+
+      .highlight-card h3 {
+        font-size: 20px;
+      }
+
+      .form-input {
+        height: 52px;
+      }
+
+      .primary-btn {
+        height: 54px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="page">
     <div class="shell">
-      <div class="left">
-        <div>
-          <div class="topbar">
-            <div class="brand">
-              <!-- 这里换成你的 logo 文件路径 -->
-              <img src="logo.png" alt="Cheerful Music Logo">
-              <div class="brand-text">
-                <div class="cn" id="brandCn">青风音乐</div>
-                <div class="en">Cheerful Music</div>
-              </div>
-            </div>
-
-            <div class="lang-switch">
-              <button class="lang-btn active" onclick="setLang('zh')" id="btnZh">中文</button>
-              <button class="lang-btn" onclick="setLang('en')" id="btnEn">EN</button>
-            </div>
+      <section class="left">
+        <div class="topbar">
+          <div class="brand-text">
+            <div class="mini" data-i18n="systemTag">Cheerful Music Internal</div>
+            <h1 data-i18n="systemName">Cheerful Music Management System</h1>
           </div>
 
-          <div class="hero">
-            <div class="tag" id="tagline">Global Music Operating System</div>
-            <h1 id="heroTitle">音乐像种子一样，<br>传播到世界的角落。</h1>
-            <p id="heroDesc">
-              Cheerful Music 的品牌灵感来自蒲公英种子。这个新界面延续你之前的 6 人登录系统，
-              但整体视觉升级为更干净、更国际化、更符合品牌调性的入口页面。
-            </p>
-
-            <div class="concept">
-              <div class="concept-card">
-                <div class="num">01</div>
-                <h3 id="c1t">品牌识别</h3>
-                <p id="c1d">以 logo 红色为核心视觉锚点，保持简洁、直接、有记忆点。</p>
-              </div>
-              <div class="concept-card">
-                <div class="num">02</div>
-                <h3 id="c2t">六人系统</h3>
-                <p id="c2d">保留原有 6 人登录入口，更适合团队日常快速切换与进入系统。</p>
-              </div>
-              <div class="concept-card">
-                <div class="num">03</div>
-                <h3 id="c3t">移动优先</h3>
-                <p id="c3d">手机端优先优化，保证你在 iPhone 上直接打开也不会乱。</p>
-              </div>
-            </div>
+          <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLang('zh')" id="btn-zh">中文</button>
+            <button class="lang-btn" onclick="setLang('en')" id="btn-en">English</button>
           </div>
         </div>
 
-        <div class="footer-note" id="footerNote">
-          Cheerful Music Internal Portal · Brand Driven · Mobile Ready
+        <div class="hero">
+          <h2 data-i18n-html="heroTitle">A more refined <span>new interface</span></h2>
+          <p data-i18n="heroDesc">
+            面向 Cheerful Music 团队内部使用的统一登录入口。保留 6 人登录系统结构，更新为更现代、更简洁、且更适合移动端访问的新界面。
+          </p>
         </div>
-      </div>
 
-      <div class="right">
-        <div class="bg-orbit"></div>
-        <div class="bg-orbit2"></div>
+        <div class="highlight-card">
+          <div class="tag" data-i18n="cardTag">Team Access</div>
+          <h3 data-i18n="cardTitle">Unified entry for members, projects and daily workflow</h3>
+          <p data-i18n="cardDesc">
+            登录后可进入系统主页、项目页面或成员面板。当前页面仅为登录界面模板，后续可继续接入真实账号验证与后台数据库。
+          </p>
+        </div>
 
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title" id="panelTitle">团队登录</div>
-              <div class="panel-sub" id="panelSub">
-                输入邮箱后进入系统，或直接选择下方团队成员快捷登录。
-              </div>
-            </div>
-            <div class="status-dot"></div>
+        <div class="members-wrap">
+          <div class="members-head">
+            <h4 data-i18n="memberTitle">6 Member Access</h4>
+            <span data-i18n="memberHint">Tap a member to autofill email</span>
           </div>
 
-          <div class="form-box">
-            <label class="label" id="emailLabel">登录邮箱</label>
-            <div class="input-wrap">
-              <span>✉️</span>
-              <input id="emailInput" type="email" placeholder="请输入邮箱 / Enter your email">
-            </div>
-            <button class="primary-btn" onclick="enterSystem()" id="enterBtn">进入系统</button>
-            <div class="tips" id="tips">
-              支持 6 位团队成员入口。你也可以输入新的工作邮箱继续进入。
-            </div>
-          </div>
-
-          <div class="members">
-            <div class="members-title">
-              <h3 id="membersTitle">快捷入口</h3>
-              <span id="membersCount">6 members</span>
+          <div class="members-grid">
+            <div class="member-card" onclick="selectMember('snow@cheerfulmusic.com', this)">
+              <div class="avatar">S</div>
+              <div class="member-name">Snow</div>
+              <div class="member-role" data-i18n="role1">CEO / Admin Access</div>
             </div>
 
-            <div class="grid">
-              <div class="member" onclick="quickLogin('snow@cheerfulmusic.com')">
-                <div class="avatar">S1</div>
-                <div class="member-info">
-                  <div class="member-name">Snow</div>
-                  <div class="member-role">snow@cheerfulmusic.com</div>
-                </div>
-              </div>
-
-              <div class="member" onclick="quickLogin('user2@cheerfulmusic.com')">
-                <div class="avatar">S2</div>
-                <div class="member-info">
-                  <div class="member-name">Member 02</div>
-                  <div class="member-role">user2@cheerfulmusic.com</div>
-                </div>
-              </div>
-
-              <div class="member" onclick="quickLogin('user3@cheerfulmusic.com')">
-                <div class="avatar">S3</div>
-                <div class="member-info">
-                  <div class="member-name">Member 03</div>
-                  <div class="member-role">user3@cheerfulmusic.com</div>
-                </div>
-              </div>
-
-              <div class="member" onclick="quickLogin('user4@cheerfulmusic.com')">
-                <div class="avatar">S4</div>
-                <div class="member-info">
-                  <div class="member-name">Member 04</div>
-                  <div class="member-role">user4@cheerfulmusic.com</div>
-                </div>
-              </div>
-
-              <div class="member" onclick="quickLogin('user5@cheerfulmusic.com')">
-                <div class="avatar">S5</div>
-                <div class="member-info">
-                  <div class="member-name">Member 05</div>
-                  <div class="member-role">user5@cheerfulmusic.com</div>
-                </div>
-              </div>
-
-              <div class="member" onclick="quickLogin('user6@cheerfulmusic.com')">
-                <div class="avatar">S6</div>
-                <div class="member-info">
-                  <div class="member-name">Member 06</div>
-                  <div class="member-role">user6@cheerfulmusic.com</div>
-                </div>
-              </div>
+            <div class="member-card" onclick="selectMember('team1@cheerfulmusic.com', this)">
+              <div class="avatar">A</div>
+              <div class="member-name">Member 02</div>
+              <div class="member-role" data-i18n="role2">A&R / Project Access</div>
             </div>
-          </div>
 
-          <div class="bottom-mini">
-            <div class="mini-left" id="miniLeft">
-              当前版本：Cheerful Music Login v2<br>
-              基于品牌视觉重新设计
+            <div class="member-card" onclick="selectMember('team2@cheerfulmusic.com', this)">
+              <div class="avatar">M</div>
+              <div class="member-name">Member 03</div>
+              <div class="member-role" data-i18n="role3">Marketing / Campaign Access</div>
             </div>
-            <div class="mini-badge" id="miniBadge">Cheerful Internal</div>
+
+            <div class="member-card" onclick="selectMember('team3@cheerfulmusic.com', this)">
+              <div class="avatar">D</div>
+              <div class="member-name">Member 04</div>
+              <div class="member-role" data-i18n="role4">Distribution / Release Access</div>
+            </div>
+
+            <div class="member-card" onclick="selectMember('team4@cheerfulmusic.com', this)">
+              <div class="avatar">C</div>
+              <div class="member-name">Member 05</div>
+              <div class="member-role" data-i18n="role5">Content / Media Access</div>
+            </div>
+
+            <div class="member-card" onclick="selectMember('team5@cheerfulmusic.com', this)">
+              <div class="avatar">F</div>
+              <div class="member-name">Member 06</div>
+              <div class="member-role" data-i18n="role6">Finance / Internal Access</div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section class="right">
+        <div class="login-panel">
+          <div class="login-badge" data-i18n="loginBadge">Secure Access</div>
+          <div class="login-title" data-i18n="loginTitle">Sign in to continue</div>
+          <div class="login-subtitle" data-i18n="loginSub">
+            输入团队邮箱和密码进入系统。点击左侧成员卡片，可快速填入对应邮箱。
+          </div>
+
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label class="form-label" data-i18n="emailLabel">Email</label>
+              <div class="input-wrap">
+                <input id="email" class="form-input" type="email" placeholder="snow@cheerfulmusic.com" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" data-i18n="passwordLabel">Password</label>
+              <div class="password-wrap">
+                <input id="password" class="form-input" type="password" placeholder="••••••••" required />
+                <button class="toggle-password" type="button" onclick="togglePassword()" data-i18n="showBtn">Show</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <label class="remember">
+                <input type="checkbox" />
+                <span data-i18n="remember">Remember me</span>
+              </label>
+              <a href="#" class="forgot" data-i18n="forgot">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="primary-btn" data-i18n="loginBtn">Enter System</button>
+          </form>
+
+          <div class="divider" data-i18n="quickEnter">Quick Entry</div>
+
+          <div class="quick-grid">
+            <button class="quick-btn" onclick="quickLogin('snow@cheerfulmusic.com')" data-i18n="quick1">Admin Login</button>
+            <button class="quick-btn" onclick="quickLogin('team1@cheerfulmusic.com')" data-i18n="quick2">Project Access</button>
+            <button class="quick-btn" onclick="quickLogin('team2@cheerfulmusic.com')" data-i18n="quick3">Marketing Access</button>
+            <button class="quick-btn" onclick="quickLogin('team3@cheerfulmusic.com')" data-i18n="quick4">Distribution Access</button>
+          </div>
+
+          <div class="foot-note" data-i18n="footNote">
+            当前为前端登录页模板。连接真实数据库后，可继续做成员权限、后台验证、首页跳转和多页面系统。
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
   <script>
-    const i18n = {
+    const translations = {
       zh: {
-        brandCn: "青风音乐",
-        tagline: "Global Music Operating System",
-        heroTitle: "音乐像种子一样，<br>传播到世界的角落。",
-        heroDesc: "Cheerful Music 的品牌灵感来自蒲公英种子。这个新界面延续你之前的 6 人登录系统，但整体视觉升级为更干净、更国际化、更符合品牌调性的入口页面。",
-        c1t: "品牌识别",
-        c1d: "以 logo 红色为核心视觉锚点，保持简洁、直接、有记忆点。",
-        c2t: "六人系统",
-        c2d: "保留原有 6 人登录入口，更适合团队日常快速切换与进入系统。",
-        c3t: "移动优先",
-        c3d: "手机端优先优化，保证你在 iPhone 上直接打开也不会乱。",
-        footerNote: "Cheerful Music Internal Portal · Brand Driven · Mobile Ready",
-        panelTitle: "团队登录",
-        panelSub: "输入邮箱后进入系统，或直接选择下方团队成员快捷登录。",
-        emailLabel: "登录邮箱",
-        emailPlaceholder: "请输入邮箱 / Enter your email",
-        enterBtn: "进入系统",
-        tips: "支持 6 位团队成员入口。你也可以输入新的工作邮箱继续进入。",
-        membersTitle: "快捷入口",
-        membersCount: "6位成员",
-        miniLeft: "当前版本：Cheerful Music Login v2<br>基于品牌视觉重新设计",
-        miniBadge: "青风内部系统",
-        invalid: "请输入正确的邮箱地址",
-        entering: "正在进入系统："
+        systemTag: "Cheerful Music 内部系统",
+        systemName: "Cheerful Music Management System",
+        heroTitle: "全新升级的 <span>登录界面</span>",
+        heroDesc: "面向 Cheerful Music 团队内部使用的统一登录入口。保留 6 人登录系统结构，更新为更现代、更简洁、且更适合移动端访问的新界面。",
+        cardTag: "团队入口",
+        cardTitle: "统一进入成员、项目与日常协作系统",
+        cardDesc: "登录后可进入系统主页、项目页面或成员面板。当前页面仅为登录界面模板，后续可继续接入真实账号验证与后台数据库。",
+        memberTitle: "6人成员入口",
+        memberHint: "点击成员卡片可自动填入邮箱",
+        role1: "CEO / 管理员权限",
+        role2: "A&R / 项目权限",
+        role3: "营销 / 推广权限",
+        role4: "发行 / 上线权限",
+        role5: "内容 / 媒体权限",
+        role6: "财务 / 内部权限",
+        loginBadge: "安全登录",
+        loginTitle: "登录进入系统",
+        loginSub: "输入团队邮箱和密码进入系统。点击左侧成员卡片，可快速填入对应邮箱。",
+        emailLabel: "邮箱",
+        passwordLabel: "密码",
+        showBtn: "显示",
+        remember: "记住我",
+        forgot: "忘记密码？",
+        loginBtn: "进入系统",
+        quickEnter: "快速入口",
+        quick1: "管理员登录",
+        quick2: "项目入口",
+        quick3: "营销入口",
+        quick4: "发行入口",
+        footNote: "当前为前端登录页模板。连接真实数据库后，可继续做成员权限、后台验证、首页跳转和多页面系统。"
       },
       en: {
-        brandCn: "Cheerful Music",
-        tagline: "Global Music Operating System",
-        heroTitle: "Let music travel like seeds,<br>reaching every corner of the world.",
-        heroDesc: "Inspired by the dandelion-seed concept of Cheerful Music, this new interface keeps your original 6-member login structure while upgrading the visual system into a cleaner and more international brand experience.",
-        c1t: "Brand Identity",
-        c1d: "Centered around the signature logo red for a clean and memorable first impression.",
-        c2t: "6-Member Access",
-        c2d: "Keeps the original six-member login flow for fast team switching and daily access.",
-        c3t: "Mobile First",
-        c3d: "Optimized for iPhone and mobile browsing so the page opens cleanly and smoothly.",
-        footerNote: "Cheerful Music Internal Portal · Brand Driven · Mobile Ready",
-        panelTitle: "Team Login",
-        panelSub: "Enter your email to continue, or use one of the quick member entries below.",
-        emailLabel: "Login Email",
-        emailPlaceholder: "Enter your email",
-        enterBtn: "Enter System",
-        tips: "Supports six team member entries. You can also continue with a new work email.",
-        membersTitle: "Quick Access",
-        membersCount: "6 members",
-        miniLeft: "Current version: Cheerful Music Login v2<br>Redesigned with brand visuals",
-        miniBadge: "Cheerful Internal",
-        invalid: "Please enter a valid email address",
-        entering: "Entering system:"
+        systemTag: "Cheerful Music Internal",
+        systemName: "Cheerful Music Management System",
+        heroTitle: "A more refined <span>new interface</span>",
+        heroDesc: "A unified entry for the Cheerful Music team. The 6-member login structure is preserved while the overall experience is redesigned for a cleaner and more mobile-friendly look.",
+        cardTag: "Team Access",
+        cardTitle: "Unified entry for members, projects and daily workflow",
+        cardDesc: "After signing in, users can enter the system homepage, project pages or member workspace. This page is currently a front-end login template and can later connect to real authentication and database services.",
+        memberTitle: "6 Member Access",
+        memberHint: "Tap a member to autofill email",
+        role1: "CEO / Admin Access",
+        role2: "A&R / Project Access",
+        role3: "Marketing / Campaign Access",
+        role4: "Distribution / Release Access",
+        role5: "Content / Media Access",
+        role6: "Finance / Internal Access",
+        loginBadge: "Secure Access",
+        loginTitle: "Sign in to continue",
+        loginSub: "Use your team email and password to enter the system. Tap a member card on the left to autofill the email field.",
+        emailLabel: "Email",
+        passwordLabel: "Password",
+        showBtn: "Show",
+        remember: "Remember me",
+        forgot: "Forgot password?",
+        loginBtn: "Enter System",
+        quickEnter: "Quick Entry",
+        quick1: "Admin Login",
+        quick2: "Project Access",
+        quick3: "Marketing Access",
+        quick4: "Distribution Access",
+        footNote: "This is currently a front-end login template. It can be connected later to real user permissions, authentication, dashboard routing and a full multi-page system."
       }
     };
 
     let currentLang = "zh";
 
-    function setLang(lang){
+    function setLang(lang) {
       currentLang = lang;
-      document.getElementById("btnZh").classList.toggle("active", lang === "zh");
-      document.getElementById("btnEn").classList.toggle("active", lang === "en");
 
-      const t = i18n[lang];
-      document.getElementById("brandCn").innerHTML = t.brandCn;
-      document.getElementById("tagline").innerHTML = t.tagline;
-      document.getElementById("heroTitle").innerHTML = t.heroTitle;
-      document.getElementById("heroDesc").innerHTML = t.heroDesc;
-      document.getElementById("c1t").innerHTML = t.c1t;
-      document.getElementById("c1d").innerHTML = t.c1d;
-      document.getElementById("c2t").innerHTML = t.c2t;
-      document.getElementById("c2d").innerHTML = t.c2d;
-      document.getElementById("c3t").innerHTML = t.c3t;
-      document.getElementById("c3d").innerHTML = t.c3d;
-      document.getElementById("footerNote").innerHTML = t.footerNote;
-      document.getElementById("panelTitle").innerHTML = t.panelTitle;
-      document.getElementById("panelSub").innerHTML = t.panelSub;
-      document.getElementById("emailLabel").innerHTML = t.emailLabel;
-      document.getElementById("emailInput").placeholder = t.emailPlaceholder;
-      document.getElementById("enterBtn").innerHTML = t.enterBtn;
-      document.getElementById("tips").innerHTML = t.tips;
-      document.getElementById("membersTitle").innerHTML = t.membersTitle;
-      document.getElementById("membersCount").innerHTML = t.membersCount;
-      document.getElementById("miniLeft").innerHTML = t.miniLeft;
-      document.getElementById("miniBadge").innerHTML = t.miniBadge;
+      document.getElementById("btn-zh").classList.toggle("active", lang === "zh");
+      document.getElementById("btn-en").classList.toggle("active", lang === "en");
+
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+
+      document.querySelectorAll("[data-i18n-html]").forEach(el => {
+        const key = el.getAttribute("data-i18n-html");
+        if (translations[lang][key]) {
+          el.innerHTML = translations[lang][key];
+        }
+      });
     }
 
-    function quickLogin(email){
-      document.getElementById("emailInput").value = email;
-      enterSystem();
+    function selectMember(email, card) {
+      document.getElementById("email").value = email;
+
+      document.querySelectorAll(".member-card").forEach(item => {
+        item.classList.remove("active-member");
+      });
+
+      card.classList.add("active-member");
     }
 
-    function enterSystem(){
-      const email = document.getElementById("emailInput").value.trim();
-      const valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
-      const t = i18n[currentLang];
+    function quickLogin(email) {
+      document.getElementById("email").value = email;
+      document.getElementById("password").focus();
+    }
 
-      if(!valid){
-        alert(t.invalid);
+    function togglePassword() {
+      const input = document.getElementById("password");
+      const btn = document.querySelector(".toggle-password");
+
+      if (input.type === "password") {
+        input.type = "text";
+        btn.textContent = currentLang === "zh" ? "隐藏" : "Hide";
+      } else {
+        input.type = "password";
+        btn.textContent = currentLang === "zh" ? "显示" : "Show";
+      }
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!email || !password) {
+        alert(currentLang === "zh" ? "请输入邮箱和密码" : "Please enter email and password");
         return;
       }
 
-      // 这里替换成你真正进入系统的页面地址
-      // 比如：window.location.href = "/dashboard.html?email=" + encodeURIComponent(email);
+      alert(
+        currentLang === "zh"
+          ? `登录成功示意：${email}`
+          : `Login success demo: ${email}`
+      );
 
-      alert(t.entering + " " + email);
-
-      // 示例跳转：
-      // window.location.href = "https://app.cheerfulmusic.com/dashboard?email=" + encodeURIComponent(email);
+      // 这里以后可以接真实跳转
+      // window.location.href = "/dashboard.html";
     }
 
     setLang("zh");
