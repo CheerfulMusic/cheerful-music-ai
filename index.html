@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheerful Music AI</title>
+  <title>Cheerful Music AI · 单人版</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -13,38 +13,40 @@
       color: #fff;
     }
     .wrap {
-      max-width: 1180px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 24px;
     }
     .topbar {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 18px 0;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 0 24px 0;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       margin-bottom: 24px;
     }
     .brand {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 700;
+      margin-bottom: 6px;
     }
     .sub {
-      font-size: 13px;
+      font-size: 14px;
       color: #9fb0d0;
-      margin-top: 6px;
+      line-height: 1.7;
     }
     .badge {
       background: #1d4ed8;
       color: #fff;
       border-radius: 999px;
-      padding: 8px 14px;
+      padding: 10px 16px;
       font-size: 12px;
-      display: inline-block;
+      white-space: nowrap;
     }
     .grid {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
+      grid-template-columns: 1.15fr 0.85fr;
       gap: 20px;
     }
     .card {
@@ -54,8 +56,13 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.22);
     }
     .card h2 {
-      margin: 0 0 16px 0;
+      margin: 0 0 14px 0;
       font-size: 20px;
+    }
+    .muted {
+      color: #9fb0d0;
+      font-size: 13px;
+      line-height: 1.7;
     }
     .label {
       display: block;
@@ -75,8 +82,13 @@
       outline: none;
     }
     textarea {
-      min-height: 100px;
+      min-height: 92px;
       resize: vertical;
+    }
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
     .btn {
       margin-top: 18px;
@@ -94,31 +106,36 @@
     .btn.secondary {
       background: #1f2937;
     }
-    .result {
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .section-title {
+      margin: 26px 0 12px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .prompt-box, .status-box, .history-box, .result-box {
       background: #0e1626;
       border-radius: 14px;
       padding: 14px;
-      margin-top: 12px;
       border: 1px solid rgba(255,255,255,0.08);
+      margin-top: 12px;
     }
-    .muted {
-      color: #9fb0d0;
+    .prompt-text {
+      white-space: pre-wrap;
+      color: #dbe7ff;
       font-size: 13px;
-      line-height: 1.6;
+      line-height: 1.8;
     }
-    .row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .mini {
+    .result-item {
       background: #0e1626;
       border-radius: 14px;
       padding: 14px;
       border: 1px solid rgba(255,255,255,0.08);
+      margin-top: 12px;
     }
-    .mini strong {
+    .result-item strong {
       display: block;
       margin-bottom: 6px;
     }
@@ -132,24 +149,41 @@
       margin-right: 6px;
       margin-top: 8px;
     }
-    .section-title {
-      margin: 28px 0 14px 0;
-      font-size: 18px;
-      font-weight: 700;
-    }
     .history-item {
-      padding: 14px 0;
+      padding: 12px 0;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .history-item:last-child {
       border-bottom: 0;
     }
-    @media (max-width: 900px) {
+    .small {
+      font-size: 12px;
+      color: #8ba1c7;
+      line-height: 1.7;
+    }
+    .empty {
+      color: #8ba1c7;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .footer-tip {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #7f93b8;
+      text-align: center;
+    }
+    @media (max-width: 920px) {
       .grid {
         grid-template-columns: 1fr;
       }
-      .row {
+      .row2 {
         grid-template-columns: 1fr;
+      }
+      .topbar {
+        flex-direction: column;
+      }
+      .badge {
+        align-self: flex-start;
       }
     }
   </style>
@@ -159,109 +193,247 @@
     <div class="topbar">
       <div>
         <div class="brand">Cheerful Music AI</div>
-        <div class="sub">单人版创作台 · 抖音 / TikTok 情绪音乐系统第一版</div>
+        <div class="sub">
+          单人真功能版（前端原型）<br>
+          你现在可以：填写情绪、自动生成 prompt、模拟生成结果、保存历史记录。
+        </div>
       </div>
-      <div class="badge">界面已上线</div>
+      <div class="badge">单人版可操作</div>
     </div>
 
     <div class="grid">
       <div class="card">
         <h2>创作台</h2>
-        <div class="muted">你以后只需要在这里填情绪词，不需要写代码。现在这是第一版界面原型。</div>
+        <div class="muted">
+          这里已经不是纯展示页了。你填内容后，它会真的生成一版 prompt，并把本次创作保存到历史记录里。
+        </div>
 
         <label class="label">情绪方向</label>
-        <textarea placeholder="例如：孤独治愈、女性视角、扎心但克制、适合抖音"></textarea>
+        <textarea id="emotionInput" placeholder="例如：孤独治愈、女性视角、扎心但克制、适合抖音、前2秒要有情绪"></textarea>
 
-        <label class="label">平台选择</label>
-        <select>
-          <option>抖音（中文）</option>
-          <option>TikTok（英文）</option>
-        </select>
+        <div class="row2">
+          <div>
+            <label class="label">平台选择</label>
+            <select id="platformSelect">
+              <option value="douyin">抖音（中文）</option>
+              <option value="tiktok">TikTok（英文）</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">风格选择</label>
+            <select id="styleSelect">
+              <option value="孤独治愈">孤独治愈</option>
+              <option value="女性情绪">女性情绪</option>
+              <option value="励志成长">励志成长</option>
+              <option value="传统中国风">传统中国风</option>
+            </select>
+          </div>
+        </div>
 
-        <label class="label">风格选择</label>
-        <select>
-          <option>孤独治愈</option>
-          <option>女性情绪</option>
-          <option>励志成长</option>
-          <option>传统中国风</option>
-        </select>
+        <div class="row2">
+          <button class="btn" onclick="generatePrompt()">自动生成 Prompt</button>
+          <button class="btn secondary" onclick="simulateMusic()">模拟生成音乐结果</button>
+        </div>
 
-        <label class="label">自动生成的提示词（预览）</label>
-        <textarea>very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop</textarea>
+        <button class="btn ghost" onclick="saveCurrent()">保存到历史记录</button>
 
-        <button class="btn">生成音乐（演示按钮）</button>
-        <button class="btn secondary">生成视频（演示按钮）</button>
+        <div class="section-title">自动生成的 Prompt</div>
+        <div class="prompt-box">
+          <div id="promptOutput" class="prompt-text">这里会显示自动生成的 prompt。</div>
+        </div>
 
         <div class="section-title">生成结果</div>
-
-        <div class="result">
-          <strong>Music Result A</strong>
-          <div class="muted">15秒短视频向 · 前2秒进入情绪 · 适合女性情绪文案</div>
-          <span class="tag">抖音感强</span>
-          <span class="tag">适合孤独治愈</span>
-        </div>
-
-        <div class="result">
-          <strong>Music Result B</strong>
-          <div class="muted">更空、更克制 · 更像深夜情绪片段 · 适合循环</div>
-          <span class="tag">高级感</span>
-          <span class="tag">适合短视频BGM</span>
-        </div>
-
-        <div class="result">
-          <strong>Music Result C</strong>
-          <div class="muted">更抓耳 · 更重复 · 更适合测试爆款</div>
-          <span class="tag">hook感强</span>
-          <span class="tag">易停留</span>
+        <div id="resultsArea" class="result-box">
+          <div class="empty">还没有结果。先填写情绪方向，然后点击“自动生成 Prompt”或“模拟生成音乐结果”。</div>
         </div>
       </div>
 
       <div class="card">
-        <h2>当前版本说明</h2>
-        <div class="muted">
-          现在你看到的是第一版网页界面。<br><br>
-          下一步会继续接入：<br>
-          1. 真实登录<br>
-          2. 音乐生成接口<br>
-          3. 视频生成流程<br>
-          4. 历史记录<br>
-          5. 团队账号系统
+        <h2>当前状态</h2>
+        <div id="statusArea" class="status-box muted">
+          当前还没有开始生成。<br>
+          建议先输入一句情绪描述，再点击“自动生成 Prompt”。
         </div>
 
-        <div class="section-title">历史记录（示意）</div>
-
-        <div class="history-item">
-          <strong>2026-04-14 · 孤独治愈</strong>
-          <div class="muted">平台：抖音（中文） · 状态：已生成</div>
+        <div class="section-title">历史记录</div>
+        <div id="historyArea" class="history-box">
+          <div class="empty">还没有历史记录。</div>
         </div>
 
-        <div class="history-item">
-          <strong>2026-04-14 · 女性情绪</strong>
-          <div class="muted">平台：抖音（中文） · 状态：待生成视频</div>
-        </div>
-
-        <div class="history-item">
-          <strong>2026-04-14 · Lonely but strong</strong>
-          <div class="muted">平台：TikTok（英文） · 状态：待测试</div>
+        <div class="section-title">这版已经做到</div>
+        <div class="small">
+          1. 真正可填写输入<br>
+          2. 真正可生成 prompt<br>
+          3. 真正可模拟出 3 条结果<br>
+          4. 真正可保存本地历史记录<br><br>
+          下一步才会继续接入：真实登录、数据库、多人账号、真实接口。
         </div>
       </div>
     </div>
 
-    <div class="section-title">团队版本预览</div>
-    <div class="row">
-      <div class="mini">
-        <strong>账号系统</strong>
-        <div class="muted">后续支持 6 个账号，1 个管理员 + 5 个成员。</div>
-      </div>
-      <div class="mini">
-        <strong>任务队列</strong>
-        <div class="muted">避免多人同时生成时卡住或混乱。</div>
-      </div>
-      <div class="mini">
-        <strong>数据记录</strong>
-        <div class="muted">后续记录抖音 / TikTok 的播放、点赞、评论和爆款标签。</div>
-      </div>
+    <div class="footer-tip">
+      当前版本说明：这还是单人版前端原型，但已经是可交互页面，不再只是静态展示。
     </div>
   </div>
+
+  <script>
+    let currentPrompt = "";
+    let currentResults = [];
+
+    function getBasePrompt(platform, style, emotion) {
+      const cleanEmotion = emotion && emotion.trim()
+        ? emotion.trim()
+        : (platform === "douyin"
+            ? "孤独治愈，女性视角，前2秒有情绪"
+            : "lonely but healing, female perspective, strong emotion in first 2 seconds");
+
+      if (platform === "douyin") {
+        if (style === "传统中国风") {
+          return "very short emotional chinese-style instrumental, instant feeling in first 2 seconds, guzheng and soft ambient texture, elegant and restrained mood, minimal melody, slight echo, no intro, no buildup, suitable for short video, c-pop, inspired by: " + cleanEmotion;
+        }
+        if (style === "励志成长") {
+          return "very short emotional piano, instant feeling in first 2 seconds, soft but hopeful mood, minimal melody, raw and real emotion, no intro, no buildup, perfect for emotional short video, c-pop, inspired by: " + cleanEmotion;
+        }
+        if (style === "女性情绪") {
+          return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: " + cleanEmotion;
+        }
+        return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: " + cleanEmotion;
+      }
+
+      if (style === "传统中国风") {
+        return "very short emotional chinese fusion instrumental, instant feeling in first 2 seconds, elegant and restrained mood, guzheng texture, minimal melody, no intro, no buildup, suitable for tiktok short video, inspired by: " + cleanEmotion;
+      }
+      if (style === "励志成长") {
+        return "very short emotional piano, instant hopeful feeling in first 2 seconds, soft but strong emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for short video, inspired by: " + cleanEmotion;
+      }
+      if (style === "女性情绪") {
+        return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: " + cleanEmotion;
+      }
+      return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: " + cleanEmotion;
+    }
+
+    function generatePrompt() {
+      const emotion = document.getElementById("emotionInput").value;
+      const platform = document.getElementById("platformSelect").value;
+      const style = document.getElementById("styleSelect").value;
+
+      currentPrompt = getBasePrompt(platform, style, emotion);
+      document.getElementById("promptOutput").textContent = currentPrompt;
+
+      const platformText = platform === "douyin" ? "抖音（中文）" : "TikTok（英文）";
+      document.getElementById("statusArea").innerHTML =
+        "Prompt 已生成。<br><br>" +
+        "平台：" + platformText + "<br>" +
+        "风格：" + style + "<br>" +
+        "状态：可继续点击“模拟生成音乐结果”";
+    }
+
+    function simulateMusic() {
+      if (!currentPrompt) {
+        generatePrompt();
+      }
+
+      const style = document.getElementById("styleSelect").value;
+      const platform = document.getElementById("platformSelect").value;
+
+      const resultPresets = [
+        {
+          title: "Music Result A",
+          desc: "前2秒情绪很直接，适合短视频停留测试。",
+          tags: ["抖音感强", "前2秒进入", style]
+        },
+        {
+          title: "Music Result B",
+          desc: "更克制、更空，更适合深夜情绪内容。",
+          tags: ["更细腻", "更安静", platform === "douyin" ? "中文场景" : "英文场景"]
+        },
+        {
+          title: "Music Result C",
+          desc: "更重复、更抓耳，更适合测试爆款循环感。",
+          tags: ["hook感", "易循环", "适合测试"]
+        }
+      ];
+
+      currentResults = resultPresets;
+
+      const html = resultPresets.map(item => `
+        <div class="result-item">
+          <strong>${item.title}</strong>
+          <div class="muted">${item.desc}</div>
+          ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join("")}
+        </div>
+      `).join("");
+
+      document.getElementById("resultsArea").innerHTML = html;
+      document.getElementById("statusArea").innerHTML =
+        "已模拟生成 3 条结果。<br><br>" +
+        "你现在可以：<br>" +
+        "1. 查看结果<br>" +
+        "2. 点击“保存到历史记录”<br>" +
+        "3. 再修改情绪方向继续测试";
+    }
+
+    function saveCurrent() {
+      const emotion = document.getElementById("emotionInput").value.trim() || "未填写情绪";
+      const platform = document.getElementById("platformSelect").value === "douyin" ? "抖音（中文）" : "TikTok（英文）";
+      const style = document.getElementById("styleSelect").value;
+      const time = new Date().toLocaleString();
+
+      const item = {
+        emotion,
+        platform,
+        style,
+        prompt: currentPrompt || "尚未生成 prompt",
+        time
+      };
+
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem("cheerful_history") || "[]");
+      } catch (e) {
+        history = [];
+      }
+
+      history.unshift(item);
+      localStorage.setItem("cheerful_history", JSON.stringify(history.slice(0, 10)));
+      renderHistory();
+
+      document.getElementById("statusArea").innerHTML =
+        "已保存到历史记录。<br><br>" +
+        "你现在保存的是：<br>" +
+        "情绪：" + emotion + "<br>" +
+        "风格：" + style + "<br>" +
+        "平台：" + platform;
+    }
+
+    function renderHistory() {
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem("cheerful_history") || "[]");
+      } catch (e) {
+        history = [];
+      }
+
+      const historyArea = document.getElementById("historyArea");
+
+      if (!history.length) {
+        historyArea.innerHTML = '<div class="empty">还没有历史记录。</div>';
+        return;
+      }
+
+      historyArea.innerHTML = history.map(item => `
+        <div class="history-item">
+          <strong>${item.time}</strong>
+          <div class="muted">
+            情绪：${item.emotion}<br>
+            平台：${item.platform}<br>
+            风格：${item.style}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    renderHistory();
+  </script>
 </body>
 </html>
