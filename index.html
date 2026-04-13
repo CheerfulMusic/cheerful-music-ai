@@ -1,758 +1,798 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Cheerful Music AI</title>
-<style>
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-  background:linear-gradient(180deg,#0c1018 0%,#121826 100%);
-  color:#fff;
-}
-.wrap{
-  max-width:1200px;
-  margin:0 auto;
-  padding:24px;
-}
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:16px;
-  margin-bottom:24px;
-}
-.brandbox{
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-.logo{
-  width:52px;
-  height:52px;
-  border-radius:16px;
-  background:linear-gradient(135deg,#F93822 0%,#ff7a3d 100%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 10px 30px rgba(249,56,34,.35);
-}
-.logo svg{
-  width:30px;
-  height:30px;
-  fill:#fff;
-}
-.brandtitle{
-  font-size:28px;
-  font-weight:800;
-  letter-spacing:.2px;
-}
-.brandsub{
-  font-size:13px;
-  color:#aab3c5;
-  margin-top:4px;
-}
-.topactions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.langbtn,.statuspill,.ghostbtn,.mainbtn,.subbtn{
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:700;
-}
-.langbtn{
-  background:#1b2233;
-  color:#fff;
-  padding:10px 14px;
-}
-.langbtn:hover{
-  background:#242d43;
-}
-.statuspill{
-  background:rgba(249,56,34,.14);
-  color:#ff8a7a;
-  padding:10px 14px;
-}
-.hidden{display:none !important}
-.grid-login{
-  max-width:560px;
-  margin:40px auto 0;
-}
-.card{
-  background:rgba(20,27,41,.92);
-  border:1px solid rgba(255,255,255,.06);
-  backdrop-filter:blur(6px);
-  border-radius:24px;
-  padding:24px;
-  box-shadow:0 16px 50px rgba(0,0,0,.28);
-}
-.card h2{
-  margin:0 0 10px 0;
-  font-size:24px;
-}
-.muted{
-  color:#aab3c5;
-  font-size:14px;
-  line-height:1.7;
-}
-.label{
-  display:block;
-  font-size:13px;
-  color:#c4cada;
-  margin-top:16px;
-  margin-bottom:8px;
-}
-input,textarea,select{
-  width:100%;
-  background:#0f1522;
-  color:#fff;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px;
-  padding:14px 15px;
-  font-size:14px;
-  outline:none;
-}
-input:focus,textarea:focus,select:focus{
-  border-color:#F93822;
-  box-shadow:0 0 0 3px rgba(249,56,34,.14);
-}
-textarea{
-  min-height:96px;
-  resize:vertical;
-}
-.mainbtn{
-  width:100%;
-  margin-top:16px;
-  padding:14px 18px;
-  background:#F93822;
-  color:#fff;
-  box-shadow:0 10px 24px rgba(249,56,34,.28);
-}
-.mainbtn:hover{
-  background:#e5331e;
-}
-.subbtn{
-  width:100%;
-  margin-top:12px;
-  padding:14px 18px;
-  background:#20283a;
-  color:#fff;
-}
-.subbtn:hover{
-  background:#293349;
-}
-.smallnote{
-  margin-top:18px;
-  padding:14px;
-  border-radius:16px;
-  background:#0f1522;
-  color:#9aa6bf;
-  font-size:13px;
-  line-height:1.8;
-}
-.dashboard{
-  display:grid;
-  grid-template-columns:260px 1fr;
-  gap:22px;
-}
-.sidebar{
-  background:rgba(20,27,41,.92);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:24px;
-  padding:18px;
-  height:fit-content;
-  box-shadow:0 16px 50px rgba(0,0,0,.28);
-}
-.sidehead{
-  font-size:18px;
-  font-weight:800;
-  margin-bottom:14px;
-}
-.menubtn{
-  width:100%;
-  text-align:left;
-  background:transparent;
-  color:#fff;
-  border:none;
-  border-radius:14px;
-  padding:12px 14px;
-  margin-top:8px;
-  cursor:pointer;
-  font-size:14px;
-}
-.menubtn:hover{
-  background:#1c2436;
-}
-.menubtn.active{
-  background:rgba(249,56,34,.16);
-  color:#ff9f92;
-}
-.userbox{
-  margin-top:20px;
-  padding:14px;
-  background:#0f1522;
-  border-radius:16px;
-}
-.username{
-  font-weight:700;
-  margin-bottom:6px;
-}
-.mainarea{
-  display:grid;
-  gap:22px;
-}
-.twocol{
-  display:grid;
-  grid-template-columns:1.1fr .9fr;
-  gap:22px;
-}
-.row2{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.sectiontitle{
-  margin:22px 0 10px 0;
-  font-size:18px;
-  font-weight:800;
-}
-.box{
-  background:#0f1522;
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:18px;
-  padding:14px;
-  margin-top:12px;
-}
-.prompttext{
-  white-space:pre-wrap;
-  color:#e9edf7;
-  font-size:13px;
-  line-height:1.8;
-}
-.resultitem,.historyitem,.teamitem{
-  background:#0f1522;
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:18px;
-  padding:14px;
-  margin-top:12px;
-}
-.resultitem strong,.teamitem strong{
-  display:block;
-  margin-bottom:6px;
-}
-.tag{
-  display:inline-block;
-  margin-top:8px;
-  margin-right:6px;
-  padding:6px 10px;
-  font-size:12px;
-  border-radius:999px;
-  background:rgba(249,56,34,.14);
-  color:#ff9f92;
-}
-.empty{
-  color:#8d9ab4;
-  font-size:13px;
-  line-height:1.7;
-}
-.footer{
-  margin-top:22px;
-  text-align:center;
-  color:#76829b;
-  font-size:12px;
-}
-@media(max-width:980px){
-  .dashboard{grid-template-columns:1fr}
-  .twocol{grid-template-columns:1fr}
-  .row2{grid-template-columns:1fr}
-  .topbar{flex-direction:column;align-items:flex-start}
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cheerful Music Login</title>
+  <style>
+    :root{
+      --brand:#F93822;
+      --brand-dark:#e4311d;
+      --text:#18181c;
+      --sub:#7d7d86;
+      --line:#ececef;
+      --bg:#f6f6f7;
+      --white:#ffffff;
+      --shadow:0 16px 50px rgba(0,0,0,.08);
+      --radius:28px;
+    }
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      background:
+        radial-gradient(circle at 85% 15%, rgba(249,56,34,.08), transparent 18%),
+        radial-gradient(circle at 15% 85%, rgba(249,56,34,.05), transparent 22%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .shell{
+      width:100%;
+      max-width:1320px;
+      min-height:760px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.7);
+      backdrop-filter:blur(18px);
+      border-radius:36px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: 1.02fr 1fr;
+    }
+
+    .left{
+      position:relative;
+      padding:48px 42px 38px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.84)),
+        linear-gradient(135deg, rgba(249,56,34,.06), transparent 45%);
+      border-right:1px solid rgba(0,0,0,.05);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .brand img{
+      width:56px;
+      height:auto;
+      display:block;
+      object-fit:contain;
+    }
+
+    .brand-text{
+      line-height:1;
+    }
+
+    .brand-text .cn{
+      font-size:24px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+
+    .brand-text .en{
+      margin-top:6px;
+      font-size:11px;
+      letter-spacing:2px;
+      color:var(--sub);
+      text-transform:uppercase;
+    }
+
+    .lang-switch{
+      display:flex;
+      align-items:center;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:4px;
+      gap:4px;
+      box-shadow:0 6px 18px rgba(0,0,0,.04);
+    }
+
+    .lang-btn{
+      border:none;
+      background:transparent;
+      color:var(--sub);
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.25s ease;
+    }
+
+    .lang-btn.active{
+      background:var(--brand);
+      color:#fff;
+    }
+
+    .hero{
+      margin-top:34px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      flex:1;
+    }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      width:max-content;
+      padding:8px 14px;
+      background:rgba(249,56,34,.08);
+      color:var(--brand);
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      margin-bottom:20px;
+    }
+
+    .hero h1{
+      font-size:56px;
+      line-height:1.02;
+      letter-spacing:-1.8px;
+      max-width:560px;
+    }
+
+    .hero p{
+      margin-top:18px;
+      max-width:520px;
+      font-size:16px;
+      line-height:1.8;
+      color:var(--sub);
+    }
+
+    .concept{
+      margin-top:30px;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+      max-width:580px;
+    }
+
+    .concept-card{
+      background:rgba(255,255,255,.8);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:18px 16px;
+      min-height:112px;
+    }
+
+    .concept-card .num{
+      font-size:12px;
+      color:var(--brand);
+      font-weight:800;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .concept-card h3{
+      margin-top:12px;
+      font-size:16px;
+      font-weight:700;
+    }
+
+    .concept-card p{
+      margin-top:8px;
+      font-size:13px;
+      line-height:1.6;
+      color:var(--sub);
+    }
+
+    .footer-note{
+      margin-top:28px;
+      font-size:12px;
+      color:#9a9aa2;
+      letter-spacing:.3px;
+    }
+
+    .right{
+      position:relative;
+      padding:36px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(249,56,34,.08), transparent 20%),
+        radial-gradient(circle at 85% 80%, rgba(249,56,34,.06), transparent 24%),
+        #fbfbfc;
+    }
+
+    .panel{
+      width:100%;
+      max-width:580px;
+      background:rgba(255,255,255,.96);
+      border:1px solid var(--line);
+      border-radius:32px;
+      box-shadow:0 20px 60px rgba(0,0,0,.08);
+      padding:28px;
+    }
+
+    .panel-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:22px;
+    }
+
+    .panel-title{
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:-.7px;
+    }
+
+    .panel-sub{
+      margin-top:6px;
+      color:var(--sub);
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .status-dot{
+      width:14px;
+      height:14px;
+      background:var(--brand);
+      border-radius:50%;
+      box-shadow:0 0 0 8px rgba(249,56,34,.12);
+    }
+
+    .form-box{
+      margin-top:18px;
+      padding:18px;
+      background:#fafafb;
+      border:1px solid var(--line);
+      border-radius:24px;
+    }
+
+    .label{
+      font-size:13px;
+      color:var(--sub);
+      margin-bottom:10px;
+      display:block;
+    }
+
+    .input-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:0 16px;
+      transition:.25s ease;
+    }
+
+    .input-wrap:focus-within{
+      border-color:rgba(249,56,34,.55);
+      box-shadow:0 0 0 4px rgba(249,56,34,.10);
+    }
+
+    .input-wrap span{
+      font-size:18px;
+    }
+
+    input{
+      width:100%;
+      height:56px;
+      border:none;
+      outline:none;
+      font-size:16px;
+      background:transparent;
+      color:var(--text);
+    }
+
+    .primary-btn{
+      width:100%;
+      margin-top:14px;
+      height:56px;
+      border:none;
+      border-radius:18px;
+      background:var(--brand);
+      color:#fff;
+      font-size:16px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.25s ease;
+      box-shadow:0 10px 24px rgba(249,56,34,.22);
+    }
+
+    .primary-btn:hover{
+      background:var(--brand-dark);
+      transform:translateY(-1px);
+    }
+
+    .tips{
+      margin-top:12px;
+      font-size:12px;
+      line-height:1.7;
+      color:#9a9aa2;
+    }
+
+    .members{
+      margin-top:20px;
+    }
+
+    .members-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+
+    .members-title h3{
+      font-size:15px;
+      font-weight:800;
+    }
+
+    .members-title span{
+      font-size:12px;
+      color:var(--sub);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+
+    .member{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:20px;
+      padding:14px;
+      cursor:pointer;
+      transition:.22s ease;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .member:hover{
+      border-color:rgba(249,56,34,.35);
+      transform:translateY(-1px);
+      box-shadow:0 10px 24px rgba(0,0,0,.05);
+    }
+
+    .avatar{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(249,56,34,.16), rgba(249,56,34,.06));
+      color:var(--brand);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      font-size:14px;
+      flex-shrink:0;
+    }
+
+    .member-info{
+      min-width:0;
+    }
+
+    .member-name{
+      font-size:14px;
+      font-weight:800;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .member-role{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--sub);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .bottom-mini{
+      margin-top:20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+
+    .mini-left{
+      font-size:12px;
+      color:#9a9aa2;
+      line-height:1.7;
+    }
+
+    .mini-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:9px 12px;
+      border-radius:999px;
+      background:#fff5f3;
+      color:var(--brand);
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .bg-orbit{
+      position:absolute;
+      right:-110px;
+      top:-90px;
+      width:280px;
+      height:280px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(249,56,34,.12), rgba(249,56,34,0) 68%);
+      pointer-events:none;
+    }
+
+    .bg-orbit2{
+      position:absolute;
+      left:-80px;
+      bottom:-80px;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(249,56,34,.08), rgba(249,56,34,0) 70%);
+      pointer-events:none;
+    }
+
+    @media (max-width: 1080px){
+      .shell{
+        grid-template-columns:1fr;
+      }
+      .left{
+        border-right:none;
+        border-bottom:1px solid rgba(0,0,0,.05);
+      }
+      .hero h1{
+        font-size:44px;
+      }
+    }
+
+    @media (max-width: 680px){
+      .wrap{
+        padding:12px;
+      }
+      .shell{
+        min-height:auto;
+        border-radius:24px;
+      }
+      .left, .right{
+        padding:20px;
+      }
+      .brand img{
+        width:46px;
+      }
+      .brand-text .cn{
+        font-size:20px;
+      }
+      .hero{
+        margin-top:22px;
+      }
+      .hero h1{
+        font-size:34px;
+        line-height:1.08;
+      }
+      .hero p{
+        font-size:14px;
+        line-height:1.75;
+      }
+      .concept{
+        grid-template-columns:1fr;
+      }
+      .panel{
+        padding:18px;
+        border-radius:24px;
+      }
+      .panel-title{
+        font-size:24px;
+      }
+      .grid{
+        grid-template-columns:1fr;
+      }
+      .bottom-mini{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar">
-    <div class="brandbox">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 2c.55 0 1 .45 1 1v5.3l2.2-2.2a1 1 0 1 1 1.4 1.4L14.4 9.7H17a1 1 0 1 1 0 2h-3l2.56 2.15a1 1 0 1 1-1.28 1.54L13 13.56V17a1 1 0 1 1-2 0v-3.44l-2.28 1.9a1 1 0 1 1-1.28-1.54L10 11.7H7a1 1 0 1 1 0-2h2.6L7.4 7.5a1 1 0 1 1 1.4-1.4L11 8.3V3c0-.55.45-1 1-1z"/>
-        </svg>
-      </div>
-      <div>
-        <div class="brandtitle">Cheerful Music AI</div>
-        <div class="brandsub" id="topSub"></div>
-      </div>
-    </div>
-    <div class="topactions">
-      <button class="langbtn" onclick="setLang('zh')">中文</button>
-      <button class="langbtn" onclick="setLang('en')">English</button>
-      <button class="statuspill" id="roleBadge"></button>
-    </div>
-  </div>
-  <div id="loginPage" class="grid-login">
-    <div class="card">
-      <h2 id="loginTitle"></h2>
-      <div class="muted" id="loginDesc"></div>
-
-      <label class="label" id="emailLabel"></label>
-      <input id="loginEmail" type="email" placeholder="snow@cheerfulmusic.com" />
-
-      <label class="label" id="passwordLabel"></label>
-      <input id="loginPassword" type="password" placeholder="••••••••" />
-
-      <label class="label" id="roleLabel"></label>
-      <select id="loginRole">
-        <option value="admin">Admin / 管理员</option>
-        <option value="member">Member / 成员</option>
-      </select>
-
-      <button class="mainbtn" onclick="mockLogin()" id="loginBtn"></button>
-
-      <div class="smallnote" id="demoAccountText"></div>
-    </div>
-  </div>
-
-  <div id="appPage" class="dashboard hidden">
-    <div class="sidebar">
-      <div class="sidehead" id="sidebarTitle"></div>
-
-      <button class="menubtn active" id="menuCreateBtn" onclick="showSection('create')"></button>
-      <button class="menubtn" id="menuHistoryBtn" onclick="showSection('history')"></button>
-      <button class="menubtn hidden" id="menuAdminBtn" onclick="showSection('admin')"></button>
-      <button class="menubtn" id="logoutBtn" onclick="logout()"></button>
-
-      <div class="userbox">
-        <div class="muted" id="currentUserTitle"></div>
-        <div class="username" id="currentUserName"></div>
-        <div class="muted" id="currentUserRole"></div>
-      </div>
-    </div>
-
-    <div class="mainarea">
-      <div id="sectionCreate">
-        <div class="twocol">
-          <div class="card">
-            <h2 id="createTitle"></h2>
-            <div class="muted" id="createDesc"></div>
-
-            <label class="label" id="emotionLabel"></label>
-            <textarea id="emotionInput"></textarea>
-
-            <div class="row2">
-              <div>
-                <label class="label" id="platformLabel"></label>
-                <select id="platformSelect">
-                  <option value="douyin">抖音（中文） / Douyin</option>
-                  <option value="tiktok">TikTok（英文） / TikTok</option>
-                </select>
-              </div>
-              <div>
-                <label class="label" id="styleLabel"></label>
-                <select id="styleSelect">
-                  <option value="孤独治愈">孤独治愈 / Lonely Healing</option>
-                  <option value="女性情绪">女性情绪 / Female Emotion</option>
-                  <option value="励志成长">励志成长 / Growth</option>
-                  <option value="传统中国风">传统中国风 / Chinese Style</option>
-                </select>
+  <div class="wrap">
+    <div class="shell">
+      <div class="left">
+        <div>
+          <div class="topbar">
+            <div class="brand">
+              <!-- 这里换成你的 logo 文件路径 -->
+              <img src="logo.png" alt="Cheerful Music Logo">
+              <div class="brand-text">
+                <div class="cn" id="brandCn">青风音乐</div>
+                <div class="en">Cheerful Music</div>
               </div>
             </div>
 
-            <div class="row2">
-              <button class="mainbtn" onclick="generatePrompt()" id="promptBtn"></button>
-              <button class="subbtn" onclick="simulateMusic()" id="simulateBtn"></button>
-            </div>
-
-            <button class="subbtn" onclick="saveCurrent()" id="saveBtn"></button>
-
-            <div class="sectiontitle" id="promptTitle"></div>
-            <div class="box">
-              <div id="promptOutput" class="prompttext"></div>
-            </div>
-
-            <div class="sectiontitle" id="resultTitle"></div>
-            <div id="resultsArea" class="box">
-              <div class="empty" id="resultEmpty"></div>
+            <div class="lang-switch">
+              <button class="lang-btn active" onclick="setLang('zh')" id="btnZh">中文</button>
+              <button class="lang-btn" onclick="setLang('en')" id="btnEn">EN</button>
             </div>
           </div>
 
-          <div class="card">
-            <h2 id="statusTitle"></h2>
-            <div id="statusArea" class="box muted"></div>
+          <div class="hero">
+            <div class="tag" id="tagline">Global Music Operating System</div>
+            <h1 id="heroTitle">音乐像种子一样，<br>传播到世界的角落。</h1>
+            <p id="heroDesc">
+              Cheerful Music 的品牌灵感来自蒲公英种子。这个新界面延续你之前的 6 人登录系统，
+              但整体视觉升级为更干净、更国际化、更符合品牌调性的入口页面。
+            </p>
 
-            <div class="sectiontitle" id="historyTitle"></div>
-            <div id="historyArea" class="box"></div>
-
-            <div class="sectiontitle" id="teamPreviewTitle"></div>
-            <div class="box muted" id="teamPreviewText"></div>
+            <div class="concept">
+              <div class="concept-card">
+                <div class="num">01</div>
+                <h3 id="c1t">品牌识别</h3>
+                <p id="c1d">以 logo 红色为核心视觉锚点，保持简洁、直接、有记忆点。</p>
+              </div>
+              <div class="concept-card">
+                <div class="num">02</div>
+                <h3 id="c2t">六人系统</h3>
+                <p id="c2d">保留原有 6 人登录入口，更适合团队日常快速切换与进入系统。</p>
+              </div>
+              <div class="concept-card">
+                <div class="num">03</div>
+                <h3 id="c3t">移动优先</h3>
+                <p id="c3d">手机端优先优化，保证你在 iPhone 上直接打开也不会乱。</p>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div class="footer-note" id="footerNote">
+          Cheerful Music Internal Portal · Brand Driven · Mobile Ready
         </div>
       </div>
 
-      <div id="sectionHistory" class="hidden">
-        <div class="card">
-          <h2 id="fullHistoryTitle"></h2>
-          <div class="muted" id="fullHistoryDesc"></div>
-          <div id="fullHistoryArea" class="box"></div>
+      <div class="right">
+        <div class="bg-orbit"></div>
+        <div class="bg-orbit2"></div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title" id="panelTitle">团队登录</div>
+              <div class="panel-sub" id="panelSub">
+                输入邮箱后进入系统，或直接选择下方团队成员快捷登录。
+              </div>
+            </div>
+            <div class="status-dot"></div>
+          </div>
+
+          <div class="form-box">
+            <label class="label" id="emailLabel">登录邮箱</label>
+            <div class="input-wrap">
+              <span>✉️</span>
+              <input id="emailInput" type="email" placeholder="请输入邮箱 / Enter your email">
+            </div>
+            <button class="primary-btn" onclick="enterSystem()" id="enterBtn">进入系统</button>
+            <div class="tips" id="tips">
+              支持 6 位团队成员入口。你也可以输入新的工作邮箱继续进入。
+            </div>
+          </div>
+
+          <div class="members">
+            <div class="members-title">
+              <h3 id="membersTitle">快捷入口</h3>
+              <span id="membersCount">6 members</span>
+            </div>
+
+            <div class="grid">
+              <div class="member" onclick="quickLogin('snow@cheerfulmusic.com')">
+                <div class="avatar">S1</div>
+                <div class="member-info">
+                  <div class="member-name">Snow</div>
+                  <div class="member-role">snow@cheerfulmusic.com</div>
+                </div>
+              </div>
+
+              <div class="member" onclick="quickLogin('user2@cheerfulmusic.com')">
+                <div class="avatar">S2</div>
+                <div class="member-info">
+                  <div class="member-name">Member 02</div>
+                  <div class="member-role">user2@cheerfulmusic.com</div>
+                </div>
+              </div>
+
+              <div class="member" onclick="quickLogin('user3@cheerfulmusic.com')">
+                <div class="avatar">S3</div>
+                <div class="member-info">
+                  <div class="member-name">Member 03</div>
+                  <div class="member-role">user3@cheerfulmusic.com</div>
+                </div>
+              </div>
+
+              <div class="member" onclick="quickLogin('user4@cheerfulmusic.com')">
+                <div class="avatar">S4</div>
+                <div class="member-info">
+                  <div class="member-name">Member 04</div>
+                  <div class="member-role">user4@cheerfulmusic.com</div>
+                </div>
+              </div>
+
+              <div class="member" onclick="quickLogin('user5@cheerfulmusic.com')">
+                <div class="avatar">S5</div>
+                <div class="member-info">
+                  <div class="member-name">Member 05</div>
+                  <div class="member-role">user5@cheerfulmusic.com</div>
+                </div>
+              </div>
+
+              <div class="member" onclick="quickLogin('user6@cheerfulmusic.com')">
+                <div class="avatar">S6</div>
+                <div class="member-info">
+                  <div class="member-name">Member 06</div>
+                  <div class="member-role">user6@cheerfulmusic.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-mini">
+            <div class="mini-left" id="miniLeft">
+              当前版本：Cheerful Music Login v2<br>
+              基于品牌视觉重新设计
+            </div>
+            <div class="mini-badge" id="miniBadge">Cheerful Internal</div>
+          </div>
         </div>
       </div>
-
-      <div id="sectionAdmin" class="hidden">
-        <div class="card">
-          <h2 id="adminTitle"></h2>
-          <div class="muted" id="adminDesc"></div>
-
-          <div class="teamitem">
-            <strong>snow@cheerfulmusic.com</strong>
-            <div class="muted" id="adminOwnerText"></div>
-          </div>
-          <div class="teamitem">
-            <strong>member1@cheerfulmusic.com</strong>
-            <div class="muted" id="member1Text"></div>
-          </div>
-          <div class="teamitem">
-            <strong>member2@cheerfulmusic.com</strong>
-            <div class="muted" id="member2Text"></div>
-          </div>
-          <div class="teamitem">
-            <strong>member3@cheerfulmusic.com</strong>
-            <div class="muted" id="member3Text"></div>
-          </div>
-          <div class="teamitem">
-            <strong>member4@cheerfulmusic.com</strong>
-            <div class="muted" id="member4Text"></div>
-          </div>
-          <div class="teamitem">
-            <strong>member5@cheerfulmusic.com</strong>
-            <div class="muted" id="member5Text"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer" id="footerTip"></div>
     </div>
   </div>
-  </div>
 
-<script>
-const i18n={
-zh:{
-topSub:"品牌主色已切换为 Cheerful Music 橙红色 · 6人登录骨架版",
-roleGuest:"未登录",
-roleAdmin:"管理员",
-roleMember:"成员",
-loginTitle:"登录系统",
-loginDesc:"这是 6 人团队版本的登录骨架页。当前是前端演示版，下一步将接入真实登录与数据库。",
-emailLabel:"邮箱",
-passwordLabel:"密码",
-roleLabel:"角色",
-loginBtn:"进入系统",
-demoAccountText:"管理员账号：snow@cheerfulmusic.com\n成员示意：member1@cheerfulmusic.com ～ member5@cheerfulmusic.com",
-sidebarTitle:"系统导航",
-menuCreate:"创作台",
-menuHistory:"历史记录",
-menuAdmin:"团队管理",
-logout:"退出登录",
-currentUserTitle:"当前账号",
-createTitle:"创作台",
-createDesc:"这版已经支持中英切换、品牌主色、管理员/成员视角。下一步接入真实权限系统。",
-emotionLabel:"情绪方向",
-emotionPlaceholder:"例如：孤独治愈、女性视角、扎心但克制、适合抖音、前2秒要有情绪",
-platformLabel:"平台选择",
-styleLabel:"风格选择",
-promptBtn:"自动生成 Prompt",
-simulateBtn:"模拟生成音乐结果",
-saveBtn:"保存到历史记录",
-promptTitle:"自动生成的 Prompt",
-promptEmpty:"这里会显示自动生成的 prompt。",
-resultTitle:"生成结果",
-resultEmpty:"还没有结果。先填写情绪方向，再点击生成。",
-statusTitle:"当前状态",
-statusInit:"当前还没有开始生成。建议先输入一句情绪描述，再点击“自动生成 Prompt”。",
-historyTitle:"最近记录",
-historyEmpty:"还没有历史记录。",
-teamPreviewTitle:"团队版本说明",
-teamPreviewText:"管理员可以看到全部成员入口；普通成员只看到自己的创作与记录。下一步会接真实数据库。",
-fullHistoryTitle:"完整历史记录",
-fullHistoryDesc:"这里会显示当前账号的全部历史记录。管理员后续可切换查看团队数据。",
-adminTitle:"团队管理",
-adminDesc:"这是管理员视图骨架。下一步会把 6 个账号接到真实登录系统。",
-adminOwnerText:"管理员账号 · 可查看全部成员记录",
-memberText:"成员账号 · 后续可独立登录并保留自己的记录",
-footerTip:"当前版本说明：这是 6 人登录系统的品牌化前端骨架版，已加入中英切换与角色区分。"
-},
-en:{
-topSub:"Brand color updated to Cheerful Music orange-red · 6-user login skeleton",
-roleGuest:"Guest",
-roleAdmin:"Admin",
-roleMember:"Member",
-loginTitle:"Login",
-loginDesc:"This is the 6-user team login skeleton. It is still a front-end demo. Next step: real authentication and database.",
-emailLabel:"Email",
-passwordLabel:"Password",
-roleLabel:"Role",
-loginBtn:"Enter System",
-demoAccountText:"Admin account: snow@cheerfulmusic.com\nMember examples: member1@cheerfulmusic.com ～ member5@cheerfulmusic.com",
-sidebarTitle:"Navigation",
-menuCreate:"Create",
-menuHistory:"History",
-menuAdmin:"Team Admin",
-logout:"Logout",
-currentUserTitle:"Current Account",
-createTitle:"Create Studio",
-createDesc:"This version already supports bilingual UI, brand color, and admin/member views. Next step: real permissions.",
-emotionLabel:"Emotion Direction",
-emotionPlaceholder:"For example: lonely healing, female perspective, restrained but piercing, suitable for short video, strong emotion in first 2 seconds",
-platformLabel:"Platform",
-styleLabel:"Style",
-promptBtn:"Generate Prompt",
-simulateBtn:"Simulate Music Results",
-saveBtn:"Save to History",
-promptTitle:"Generated Prompt",
-promptEmpty:"The generated prompt will appear here.",
-resultTitle:"Results",
-resultEmpty:"No results yet. Fill in the emotion direction and generate first.",
-statusTitle:"Current Status",
-statusInit:"Nothing has started yet. Enter an emotion description and click Generate Prompt.",
-historyTitle:"Recent History",
-historyEmpty:"No history yet.",
-teamPreviewTitle:"Team Notes",
-teamPreviewText:"Admin can see all member entries. Members only see their own creation and records. Next step: real database.",
-fullHistoryTitle:"Full History",
-fullHistoryDesc:"This area will show the full history for the current account. Admin will later be able to view team-wide records.",
-adminTitle:"Team Management",
-adminDesc:"This is the admin view skeleton. Next step: connect all 6 accounts to real authentication.",
-adminOwnerText:"Admin account · can view all member records",
-memberText:"Member account · will later log in independently and keep personal records",
-footerTip:"Current version: branded front-end skeleton for the 6-user login system, with bilingual UI and role separation."
-}
-};
+  <script>
+    const i18n = {
+      zh: {
+        brandCn: "青风音乐",
+        tagline: "Global Music Operating System",
+        heroTitle: "音乐像种子一样，<br>传播到世界的角落。",
+        heroDesc: "Cheerful Music 的品牌灵感来自蒲公英种子。这个新界面延续你之前的 6 人登录系统，但整体视觉升级为更干净、更国际化、更符合品牌调性的入口页面。",
+        c1t: "品牌识别",
+        c1d: "以 logo 红色为核心视觉锚点，保持简洁、直接、有记忆点。",
+        c2t: "六人系统",
+        c2d: "保留原有 6 人登录入口，更适合团队日常快速切换与进入系统。",
+        c3t: "移动优先",
+        c3d: "手机端优先优化，保证你在 iPhone 上直接打开也不会乱。",
+        footerNote: "Cheerful Music Internal Portal · Brand Driven · Mobile Ready",
+        panelTitle: "团队登录",
+        panelSub: "输入邮箱后进入系统，或直接选择下方团队成员快捷登录。",
+        emailLabel: "登录邮箱",
+        emailPlaceholder: "请输入邮箱 / Enter your email",
+        enterBtn: "进入系统",
+        tips: "支持 6 位团队成员入口。你也可以输入新的工作邮箱继续进入。",
+        membersTitle: "快捷入口",
+        membersCount: "6位成员",
+        miniLeft: "当前版本：Cheerful Music Login v2<br>基于品牌视觉重新设计",
+        miniBadge: "青风内部系统",
+        invalid: "请输入正确的邮箱地址",
+        entering: "正在进入系统："
+      },
+      en: {
+        brandCn: "Cheerful Music",
+        tagline: "Global Music Operating System",
+        heroTitle: "Let music travel like seeds,<br>reaching every corner of the world.",
+        heroDesc: "Inspired by the dandelion-seed concept of Cheerful Music, this new interface keeps your original 6-member login structure while upgrading the visual system into a cleaner and more international brand experience.",
+        c1t: "Brand Identity",
+        c1d: "Centered around the signature logo red for a clean and memorable first impression.",
+        c2t: "6-Member Access",
+        c2d: "Keeps the original six-member login flow for fast team switching and daily access.",
+        c3t: "Mobile First",
+        c3d: "Optimized for iPhone and mobile browsing so the page opens cleanly and smoothly.",
+        footerNote: "Cheerful Music Internal Portal · Brand Driven · Mobile Ready",
+        panelTitle: "Team Login",
+        panelSub: "Enter your email to continue, or use one of the quick member entries below.",
+        emailLabel: "Login Email",
+        emailPlaceholder: "Enter your email",
+        enterBtn: "Enter System",
+        tips: "Supports six team member entries. You can also continue with a new work email.",
+        membersTitle: "Quick Access",
+        membersCount: "6 members",
+        miniLeft: "Current version: Cheerful Music Login v2<br>Redesigned with brand visuals",
+        miniBadge: "Cheerful Internal",
+        invalid: "Please enter a valid email address",
+        entering: "Entering system:"
+      }
+    };
 
-let lang="zh";
-let currentUser=null;
-let currentPrompt="";
-let currentResults=[];
+    let currentLang = "zh";
 
-function t(key){return i18n[lang][key]||key;}
+    function setLang(lang){
+      currentLang = lang;
+      document.getElementById("btnZh").classList.toggle("active", lang === "zh");
+      document.getElementById("btnEn").classList.toggle("active", lang === "en");
 
-function setLang(nextLang){
-  lang=nextLang;
-  renderTexts();
-  renderHistory();
-  renderFullHistory();
-  renderRoleBadge();
-}
+      const t = i18n[lang];
+      document.getElementById("brandCn").innerHTML = t.brandCn;
+      document.getElementById("tagline").innerHTML = t.tagline;
+      document.getElementById("heroTitle").innerHTML = t.heroTitle;
+      document.getElementById("heroDesc").innerHTML = t.heroDesc;
+      document.getElementById("c1t").innerHTML = t.c1t;
+      document.getElementById("c1d").innerHTML = t.c1d;
+      document.getElementById("c2t").innerHTML = t.c2t;
+      document.getElementById("c2d").innerHTML = t.c2d;
+      document.getElementById("c3t").innerHTML = t.c3t;
+      document.getElementById("c3d").innerHTML = t.c3d;
+      document.getElementById("footerNote").innerHTML = t.footerNote;
+      document.getElementById("panelTitle").innerHTML = t.panelTitle;
+      document.getElementById("panelSub").innerHTML = t.panelSub;
+      document.getElementById("emailLabel").innerHTML = t.emailLabel;
+      document.getElementById("emailInput").placeholder = t.emailPlaceholder;
+      document.getElementById("enterBtn").innerHTML = t.enterBtn;
+      document.getElementById("tips").innerHTML = t.tips;
+      document.getElementById("membersTitle").innerHTML = t.membersTitle;
+      document.getElementById("membersCount").innerHTML = t.membersCount;
+      document.getElementById("miniLeft").innerHTML = t.miniLeft;
+      document.getElementById("miniBadge").innerHTML = t.miniBadge;
+    }
 
-function renderTexts(){
-  document.getElementById("topSub").textContent=t("topSub");
-  document.getElementById("loginTitle").textContent=t("loginTitle");
-  document.getElementById("loginDesc").textContent=t("loginDesc");
-  document.getElementById("emailLabel").textContent=t("emailLabel");
-  document.getElementById("passwordLabel").textContent=t("passwordLabel");
-  document.getElementById("roleLabel").textContent=t("roleLabel");
-  document.getElementById("loginBtn").textContent=t("loginBtn");
-  document.getElementById("demoAccountText").textContent=t("demoAccountText");
-  document.getElementById("sidebarTitle").textContent=t("sidebarTitle");
-  document.getElementById("menuCreateBtn").textContent=t("menuCreate");
-  document.getElementById("menuHistoryBtn").textContent=t("menuHistory");
-  document.getElementById("menuAdminBtn").textContent=t("menuAdmin");
-  document.getElementById("logoutBtn").textContent=t("logout");
-  document.getElementById("currentUserTitle").textContent=t("currentUserTitle");
-  document.getElementById("createTitle").textContent=t("createTitle");
-  document.getElementById("createDesc").textContent=t("createDesc");
-  document.getElementById("emotionLabel").textContent=t("emotionLabel");
-  document.getElementById("emotionInput").placeholder=t("emotionPlaceholder");
-  document.getElementById("platformLabel").textContent=t("platformLabel");
-  document.getElementById("styleLabel").textContent=t("styleLabel");
-  document.getElementById("promptBtn").textContent=t("promptBtn");
-  document.getElementById("simulateBtn").textContent=t("simulateBtn");
-  document.getElementById("saveBtn").textContent=t("saveBtn");
-  document.getElementById("promptTitle").textContent=t("promptTitle");
-  document.getElementById("resultTitle").textContent=t("resultTitle");
-  document.getElementById("resultEmpty").textContent=t("resultEmpty");
-  document.getElementById("statusTitle").textContent=t("statusTitle");
-  document.getElementById("historyTitle").textContent=t("historyTitle");
-  document.getElementById("teamPreviewTitle").textContent=t("teamPreviewTitle");
-  document.getElementById("teamPreviewText").textContent=t("teamPreviewText");
-  document.getElementById("fullHistoryTitle").textContent=t("fullHistoryTitle");
-  document.getElementById("fullHistoryDesc").textContent=t("fullHistoryDesc");
-  document.getElementById("adminTitle").textContent=t("adminTitle");
-  document.getElementById("adminDesc").textContent=t("adminDesc");
-  document.getElementById("adminOwnerText").textContent=t("adminOwnerText");
-  document.getElementById("member1Text").textContent=t("memberText");
-  document.getElementById("member2Text").textContent=t("memberText");
-  document.getElementById("member3Text").textContent=t("memberText");
-  document.getElementById("member4Text").textContent=t("memberText");
-  document.getElementById("member5Text").textContent=t("memberText");
-  document.getElementById("footerTip").textContent=t("footerTip");
-  if(!currentUser){
-    document.getElementById("statusArea").innerHTML=t("statusInit");
-    document.getElementById("promptOutput").textContent=t("promptEmpty");
-  }
-}
+    function quickLogin(email){
+      document.getElementById("emailInput").value = email;
+      enterSystem();
+    }
 
-function renderRoleBadge(){
-  const badge=document.getElementById("roleBadge");
-  if(!currentUser){badge.textContent=t("roleGuest");return;}
-  badge.textContent=currentUser.role==="admin"?t("roleAdmin"):t("roleMember");
-}
+    function enterSystem(){
+      const email = document.getElementById("emailInput").value.trim();
+      const valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
+      const t = i18n[currentLang];
 
-function mockLogin(){
-  const email=document.getElementById("loginEmail").value.trim()||"member1@cheerfulmusic.com";
-  const role=document.getElementById("loginRole").value;
-  currentUser={email,role};
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("appPage").classList.remove("hidden");
-  document.getElementById("currentUserName").textContent=email;
-  document.getElementById("currentUserRole").textContent=role==="admin"?t("roleAdmin"):t("roleMember");
-  const adminBtn=document.getElementById("menuAdminBtn");
-  if(role==="admin"){adminBtn.classList.remove("hidden")}else{adminBtn.classList.add("hidden")}
-  document.getElementById("statusArea").innerHTML=t("statusInit");
-  renderRoleBadge();
-  renderHistory();
-  renderFullHistory();
-  showSection("create");
-}
+      if(!valid){
+        alert(t.invalid);
+        return;
+      }
 
-function logout(){
-  currentUser=null;
-  document.getElementById("loginPage").classList.remove("hidden");
-  document.getElementById("appPage").classList.add("hidden");
-  renderRoleBadge();
-}
+      // 这里替换成你真正进入系统的页面地址
+      // 比如：window.location.href = "/dashboard.html?email=" + encodeURIComponent(email);
 
-function showSection(section){
-  document.getElementById("sectionCreate").classList.add("hidden");
-  document.getElementById("sectionHistory").classList.add("hidden");
-  document.getElementById("sectionAdmin").classList.add("hidden");
-  document.getElementById("menuCreateBtn").classList.remove("active");
-  document.getElementById("menuHistoryBtn").classList.remove("active");
-  document.getElementById("menuAdminBtn").classList.remove("active");
-  if(section==="create"){
-    document.getElementById("sectionCreate").classList.remove("hidden");
-    document.getElementById("menuCreateBtn").classList.add("active");
-  }else if(section==="history"){
-    document.getElementById("sectionHistory").classList.remove("hidden");
-    document.getElementById("menuHistoryBtn").classList.add("active");
-  }else if(section==="admin"){
-    document.getElementById("sectionAdmin").classList.remove("hidden");
-    document.getElementById("menuAdminBtn").classList.add("active");
-  }
-}
+      alert(t.entering + " " + email);
 
-function getBasePrompt(platform,style,emotion){
-  const cleanEmotion=emotion&&emotion.trim()?emotion.trim():(platform==="douyin"?"孤独治愈，女性视角，前2秒有情绪":"lonely but healing, female perspective, strong emotion in first 2 seconds");
-  if(platform==="douyin"){
-    if(style.includes("中国风")) return "very short emotional chinese-style instrumental, instant feeling in first 2 seconds, guzheng and soft ambient texture, elegant and restrained mood, minimal melody, slight echo, no intro, no buildup, suitable for short video, c-pop, inspired by: "+cleanEmotion;
-    if(style.includes("励志")) return "very short emotional piano, instant hopeful feeling in first 2 seconds, soft but strong mood, minimal melody, raw and real emotion, no intro, no buildup, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
-    if(style.includes("女性")) return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
-    return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop, inspired by: "+cleanEmotion;
-  }else{
-    if(style.includes("中国风")) return "very short emotional chinese fusion instrumental, instant feeling in first 2 seconds, elegant and restrained mood, guzheng texture, minimal melody, no intro, no buildup, suitable for tiktok short video, inspired by: "+cleanEmotion;
-    if(style.includes("励志")) return "very short emotional piano, instant hopeful feeling in first 2 seconds, soft but strong emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for short video, inspired by: "+cleanEmotion;
-    if(style.includes("女性")) return "very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: "+cleanEmotion;
-    return "very short emotional piano, instant sad feeling in first 2 seconds, lonely healing mood, soft but deep emotion, minimal melody, no intro, no buildup, raw and real feeling, perfect for emotional short video, inspired by: "+cleanEmotion;
-  }
-}
+      // 示例跳转：
+      // window.location.href = "https://app.cheerfulmusic.com/dashboard?email=" + encodeURIComponent(email);
+    }
 
-function generatePrompt(){
-  const emotion=document.getElementById("emotionInput").value;
-  const platform=document.getElementById("platformSelect").value;
-  const style=document.getElementById("styleSelect").value;
-  currentPrompt=getBasePrompt(platform,style,emotion);
-  document.getElementById("promptOutput").textContent=currentPrompt;
-  document.getElementById("statusArea").innerHTML=lang==="zh"
-    ?"Prompt 已生成。<br><br>平台："+(platform==="douyin"?"抖音（中文）":"TikTok（英文）")+"<br>风格："+style+"<br>状态：可继续点击“模拟生成音乐结果”"
-    :"Prompt generated.<br><br>Platform: "+(platform==="douyin"?"Douyin":"TikTok")+"<br>Style: "+style+"<br>Status: ready to simulate music results";
-}
-
-function simulateMusic(){
-  if(!currentPrompt) generatePrompt();
-  const style=document.getElementById("styleSelect").value;
-  const platform=document.getElementById("platformSelect").value;
-  currentResults=[
-    {title:"Music Result A",descZh:"前2秒情绪很直接，适合短视频停留测试。",descEn:"Strong emotion in the first 2 seconds, suitable for retention testing.",tags:["Hook",style,platform==="douyin"?"Douyin":"TikTok"]},
-    {title:"Music Result B",descZh:"更克制、更安静，更适合深夜情绪内容。",descEn:"More restrained and quieter, suitable for late-night emotional content.",tags:["Calm","Night","Loop"]},
-    {title:"Music Result C",descZh:"更重复、更抓耳，更适合测试爆款循环感。",descEn:"More repetitive and catchy, suitable for testing viral loop potential.",tags:["Catchy","Repeat","Test"]}
-  ];
-  document.getElementById("resultsArea").innerHTML=currentResults.map(item=>`
-    <div class="resultitem">
-      <strong>${item.title}</strong>
-      <div class="muted">${lang==="zh"?item.descZh:item.descEn}</div>
-      ${item.tags.map(tag=>`<span class="tag">${tag}</span>`).join("")}
-    </div>
-  `).join("");
-  document.getElementById("statusArea").innerHTML=lang==="zh"
-    ?"已模拟生成 3 条结果。<br><br>你现在可以保存本次任务，或继续修改情绪方向。"
-    :"3 mock results generated.<br><br>You can now save this task or continue adjusting the emotion direction.";
-}
-
-function saveCurrent(){
-  if(!currentUser) return;
-  const emotion=document.getElementById("emotionInput").value.trim()||(lang==="zh"?"未填写情绪":"No emotion entered");
-  const platform=document.getElementById("platformSelect").value==="douyin"?"Douyin":"TikTok";
-  const style=document.getElementById("styleSelect").value;
-  const time=new Date().toLocaleString();
-  const item={email:currentUser.email,role:currentUser.role,emotion,platform,style,prompt:currentPrompt||"",time};
-  let history=[];
-  try{history=JSON.parse(localStorage.getItem("cheerful_team_history")||"[]")}catch(e){history=[]}
-  history.unshift(item);
-  localStorage.setItem("cheerful_team_history",JSON.stringify(history.slice(0,30)));
-  renderHistory();
-  renderFullHistory();
-  document.getElementById("statusArea").innerHTML=lang==="zh"
-    ?"已保存到历史记录。<br><br>当前账号："+currentUser.email
-    :"Saved to history.<br><br>Current account: "+currentUser.email;
-}
-
-function getAllHistory(){
-  try{return JSON.parse(localStorage.getItem("cheerful_team_history")||"[]")}catch(e){return []}
-}
-
-function renderHistory(){
-  const area=document.getElementById("historyArea");
-  const all=getAllHistory();
-  if(!currentUser){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
-  const filtered=currentUser.role==="admin"?all.slice(0,5):all.filter(x=>x.email===currentUser.email).slice(0,5);
-  if(!filtered.length){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
-  area.innerHTML=filtered.map(item=>`
-    <div class="historyitem">
-      <strong>${item.time}</strong>
-      <div class="muted">${lang==="zh"
-        ?"账号："+item.email+"<br>情绪："+item.emotion+"<br>平台："+item.platform+"<br>风格："+item.style
-        :"Account: "+item.email+"<br>Emotion: "+item.emotion+"<br>Platform: "+item.platform+"<br>Style: "+item.style}
-      </div>
-    </div>
-  `).join("");
-}
-
-function renderFullHistory(){
-  const area=document.getElementById("fullHistoryArea");
-  const all=getAllHistory();
-  if(!currentUser){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
-  const filtered=currentUser.role==="admin"?all:all.filter(x=>x.email===currentUser.email);
-  if(!filtered.length){area.innerHTML='<div class="empty">'+t("historyEmpty")+'</div>';return;}
-  area.innerHTML=filtered.map(item=>`
-    <div class="historyitem">
-      <strong>${item.time}</strong>
-      <div class="muted">${lang==="zh"
-        ?"账号："+item.email+"<br>情绪："+item.emotion+"<br>平台："+item.platform+"<br>风格："+item.style
-        :"Account: "+item.email+"<br>Emotion: "+item.emotion+"<br>Platform: "+item.platform+"<br>Style: "+item.style}
-      </div>
-    </div>
-  `).join("");
-}
-
-renderTexts();
-renderRoleBadge();
-renderHistory();
-renderFullHistory();
-document.getElementById("promptOutput").textContent=t("promptEmpty");
-</script>
+    setLang("zh");
+  </script>
 </body>
 </html>
-  
