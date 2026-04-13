@@ -5,50 +5,263 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cheerful Music AI</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
+      background: #0b1220;
+      color: #fff;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 24px;
     }
-    .box {
-      max-width: 720px;
-      padding: 40px;
-      border-radius: 20px;
-      background: #111827;
-      box-shadow: 0 10px 30px rgba(0,0,0,.3);
-      text-align: center;
+    .brand {
+      font-size: 24px;
+      font-weight: 700;
     }
-    h1 {
-      margin-top: 0;
-      font-size: 32px;
+    .sub {
+      font-size: 13px;
+      color: #9fb0d0;
+      margin-top: 6px;
     }
-    p {
-      color: #cbd5e1;
-      line-height: 1.7;
-      font-size: 16px;
+    .badge {
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      display: inline-block;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+    }
+    .card {
+      background: #121a2b;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22);
+    }
+    .card h2 {
+      margin: 0 0 16px 0;
+      font-size: 20px;
+    }
+    .label {
+      display: block;
+      font-size: 13px;
+      color: #9fb0d0;
+      margin-bottom: 8px;
+      margin-top: 16px;
+    }
+    textarea, select, input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0e1626;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 14px;
+      outline: none;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .btn {
+      margin-top: 18px;
+      display: inline-block;
+      border: 0;
+      background: #2563eb;
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 700;
+    }
+    .btn.secondary {
+      background: #1f2937;
+    }
+    .result {
+      background: #0e1626;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .muted {
+      color: #9fb0d0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .mini {
+      background: #0e1626;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .mini strong {
+      display: block;
+      margin-bottom: 6px;
     }
     .tag {
       display: inline-block;
-      margin-top: 18px;
-      padding: 10px 16px;
+      padding: 6px 10px;
       border-radius: 999px;
-      background: #1d4ed8;
-      color: white;
-      font-size: 14px;
+      background: rgba(37,99,235,.18);
+      color: #a9c4ff;
+      font-size: 12px;
+      margin-right: 6px;
+      margin-top: 8px;
+    }
+    .section-title {
+      margin: 28px 0 14px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .history-item {
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .history-item:last-child {
+      border-bottom: 0;
+    }
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Cheerful Music AI</h1>
-    <p>系统首页已经上线成功。</p>
-    <p>下一步将接入：情绪输入、音乐生成、视频生成。</p>
-    <div class="tag">部署成功</div>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <div class="brand">Cheerful Music AI</div>
+        <div class="sub">单人版创作台 · 抖音 / TikTok 情绪音乐系统第一版</div>
+      </div>
+      <div class="badge">界面已上线</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>创作台</h2>
+        <div class="muted">你以后只需要在这里填情绪词，不需要写代码。现在这是第一版界面原型。</div>
+
+        <label class="label">情绪方向</label>
+        <textarea placeholder="例如：孤独治愈、女性视角、扎心但克制、适合抖音"></textarea>
+
+        <label class="label">平台选择</label>
+        <select>
+          <option>抖音（中文）</option>
+          <option>TikTok（英文）</option>
+        </select>
+
+        <label class="label">风格选择</label>
+        <select>
+          <option>孤独治愈</option>
+          <option>女性情绪</option>
+          <option>励志成长</option>
+          <option>传统中国风</option>
+        </select>
+
+        <label class="label">自动生成的提示词（预览）</label>
+        <textarea>very short emotional piano, instant sad feeling in first 2 seconds, lonely and fragile female mood, soft but deep emotion, minimal melody, slight echo, no intro, no buildup, raw and real feeling, perfect for emotional short video, c-pop</textarea>
+
+        <button class="btn">生成音乐（演示按钮）</button>
+        <button class="btn secondary">生成视频（演示按钮）</button>
+
+        <div class="section-title">生成结果</div>
+
+        <div class="result">
+          <strong>Music Result A</strong>
+          <div class="muted">15秒短视频向 · 前2秒进入情绪 · 适合女性情绪文案</div>
+          <span class="tag">抖音感强</span>
+          <span class="tag">适合孤独治愈</span>
+        </div>
+
+        <div class="result">
+          <strong>Music Result B</strong>
+          <div class="muted">更空、更克制 · 更像深夜情绪片段 · 适合循环</div>
+          <span class="tag">高级感</span>
+          <span class="tag">适合短视频BGM</span>
+        </div>
+
+        <div class="result">
+          <strong>Music Result C</strong>
+          <div class="muted">更抓耳 · 更重复 · 更适合测试爆款</div>
+          <span class="tag">hook感强</span>
+          <span class="tag">易停留</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>当前版本说明</h2>
+        <div class="muted">
+          现在你看到的是第一版网页界面。<br><br>
+          下一步会继续接入：<br>
+          1. 真实登录<br>
+          2. 音乐生成接口<br>
+          3. 视频生成流程<br>
+          4. 历史记录<br>
+          5. 团队账号系统
+        </div>
+
+        <div class="section-title">历史记录（示意）</div>
+
+        <div class="history-item">
+          <strong>2026-04-14 · 孤独治愈</strong>
+          <div class="muted">平台：抖音（中文） · 状态：已生成</div>
+        </div>
+
+        <div class="history-item">
+          <strong>2026-04-14 · 女性情绪</strong>
+          <div class="muted">平台：抖音（中文） · 状态：待生成视频</div>
+        </div>
+
+        <div class="history-item">
+          <strong>2026-04-14 · Lonely but strong</strong>
+          <div class="muted">平台：TikTok（英文） · 状态：待测试</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">团队版本预览</div>
+    <div class="row">
+      <div class="mini">
+        <strong>账号系统</strong>
+        <div class="muted">后续支持 6 个账号，1 个管理员 + 5 个成员。</div>
+      </div>
+      <div class="mini">
+        <strong>任务队列</strong>
+        <div class="muted">避免多人同时生成时卡住或混乱。</div>
+      </div>
+      <div class="mini">
+        <strong>数据记录</strong>
+        <div class="muted">后续记录抖音 / TikTok 的播放、点赞、评论和爆款标签。</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
