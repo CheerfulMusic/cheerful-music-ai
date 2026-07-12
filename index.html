@@ -1,373 +1,103 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheerful Music AI OS</title>
-  <style>
-    :root{
-      --red:#F93822;
-      --red-2:#ff5a45;
-      --bg:#09090b;
-      --sidebar:#0b0b0e;
-      --panel:#15151a;
-      --panel-2:#1b1b21;
-      --panel-3:#101014;
-      --line:#2a2a32;
-      --text:#f6f6f8;
-      --muted:#9a9aa4;
-      --soft:#c8c8cf;
-      --green:#32d74b;
-      --yellow:#ffd60a;
-      --danger:#ff453a;
-      --radius:18px;
-      --sidebar-width:280px;
-      --shadow:0 18px 50px rgba(0,0,0,.28);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Microsoft YaHei","Segoe UI",sans-serif}
-    button,input,select{font:inherit}
-    button{cursor:pointer}
-    .hidden{display:none!important}
-
-    /* Login */
-    .login-screen{min-height:100vh;display:grid;place-items:center;padding:28px;background:
-      radial-gradient(circle at 20% 0%,rgba(249,56,34,.15),transparent 34%),
-      radial-gradient(circle at 100% 100%,rgba(255,255,255,.04),transparent 30%),
-      var(--bg)}
-    .login-card{width:min(470px,100%);padding:34px;border:1px solid var(--line);border-radius:26px;background:rgba(20,20,25,.92);box-shadow:var(--shadow);backdrop-filter:blur(24px)}
-    .brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-    .brand-mark{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;background:var(--red);font-weight:900;box-shadow:0 14px 32px rgba(249,56,34,.3)}
-    .brand-title{font-size:20px;font-weight:800}.brand-sub{color:var(--muted);font-size:12px;margin-top:3px}
-    .login-card h1{margin:0 0 8px;font-size:34px;letter-spacing:-1px}.login-card p{margin:0 0 28px;color:var(--muted);line-height:1.7}
-    .field{margin-bottom:16px}.field label{display:block;margin-bottom:8px;color:var(--soft);font-size:13px;font-weight:700}
-    .field input{width:100%;height:54px;border-radius:14px;border:1px solid var(--line);background:#111116;color:white;padding:0 16px;outline:none}
-    .field input:focus{border-color:rgba(249,56,34,.7);box-shadow:0 0 0 4px rgba(249,56,34,.1)}
-    .login-btn{width:100%;height:54px;border:0;border-radius:14px;background:var(--red);color:#fff;font-weight:800}
-    .login-error{min-height:22px;color:var(--danger);font-size:13px;margin-top:12px}
-    .login-note{margin-top:18px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6}
-
-    /* Shell */
-    .shell{min-height:100vh;display:grid;grid-template-columns:var(--sidebar-width) 1fr}
-    .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar-width);padding:22px 16px;background:var(--sidebar);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:30}
-    .side-brand{display:flex;gap:12px;align-items:center;padding:6px 10px 24px}
-    .side-brand .brand-mark{width:42px;height:42px;border-radius:14px}
-    .side-brand strong{display:block;font-size:16px}.side-brand span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
-    .nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#b8b8c0;height:46px;border-radius:13px;text-align:left;padding:0 14px;display:flex;align-items:center;gap:12px}
-    .nav button:hover{background:rgba(255,255,255,.04);color:white}
-    .nav button.active{background:rgba(249,56,34,.14);color:#ff9a8d;box-shadow:inset 3px 0 0 var(--red)}
-    .nav-icon{width:22px;text-align:center}
-    .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding-top:16px}
-    .user{padding:8px 10px}.user strong{display:block}.user span{display:block;margin-top:4px;color:var(--muted);font-size:12px}
-    .logout{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--soft);margin-top:10px}
-    .main{grid-column:2;min-width:0}
-    .topbar{height:74px;display:flex;align-items:center;justify-content:space-between;padding:0 36px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(9,9,11,.85);backdrop-filter:blur(20px);z-index:20}
-    .topbar h2{margin:0;font-size:20px}.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(50,215,75,.8)}
-    .content{padding:36px}
-    .page{display:none}.page.active{display:block}
-    .hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:28px}
-    .eyebrow{color:var(--red);font-size:12px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase}
-    .hero h1{margin:10px 0 0;font-size:46px;letter-spacing:-2px}.hero p{margin:12px 0 0;color:var(--muted);line-height:1.7}
-    .primary-btn,.secondary-btn{height:44px;padding:0 18px;border-radius:12px;font-weight:800}
-    .primary-btn{border:0;background:var(--red);color:white}.secondary-btn{border:1px solid var(--line);background:var(--panel);color:var(--soft)}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .stat{padding:24px}.stat span{color:var(--muted);font-size:13px}.stat strong{display:block;margin-top:14px;font-size:34px}.stat small{display:block;margin-top:8px;color:#777783}
-    .panel{padding:24px;margin-bottom:24px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.panel-head h3{margin:0;font-size:18px}
-    .task{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel-3);margin-bottom:12px}.task:last-child{margin-bottom:0}.task-icon{width:42px;height:42px;border-radius:12px;background:var(--panel-2);display:grid;place-items:center}.task-copy{flex:1}.task-copy strong{display:block}.task-copy span{display:block;color:var(--muted);font-size:12px;margin-top:5px}.badge{padding:7px 10px;border-radius:999px;background:rgba(249,56,34,.12);color:#ff9b8e;font-size:11px}
-    .finance-tools{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.tool-card{padding:24px}.tool-card h3{margin:0 0 8px}.tool-card p{margin:0;color:var(--muted);line-height:1.6}.tool-card .primary-btn{margin-top:18px}
-    .subnav{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}.subnav button{height:42px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--soft)}.subnav button.active{background:rgba(249,56,34,.14);border-color:rgba(249,56,34,.35);color:#ff9d91}
-    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}.table{width:100%;border-collapse:collapse;min-width:920px}.table th,.table td{text-align:left;padding:15px 16px;border-bottom:1px solid var(--line);font-size:13px}.table th{color:var(--muted);font-weight:700;background:#121217;position:sticky;top:0}.table td{background:var(--panel)}.table tr:last-child td{border-bottom:0}
-    .link-btn{border:0;background:transparent;color:#ff978a;padding:0}
-    .empty{padding:48px;text-align:center;color:var(--muted)}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.modal-backdrop.show{display:flex}
-    .modal{width:min(720px,100%);max-height:90vh;overflow:auto;background:#131318;border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:var(--shadow)}
-    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal-head h3{margin:0}.close-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:transparent;color:white}
-    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.form-grid .full{grid-column:1/-1}.form-grid label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.form-grid input,.form-grid select{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:#0f0f13;color:white;padding:0 13px;outline:none}
-    .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
-    .toast{position:fixed;right:24px;bottom:24px;padding:14px 16px;background:#1a1a20;border:1px solid var(--line);border-radius:13px;opacity:0;transform:translateY(12px);transition:.2s;z-index:200}.toast.show{opacity:1;transform:translateY(0)}
-    @media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.finance-tools{grid-template-columns:1fr}}
-    @media(max-width:800px){:root{--sidebar-width:220px}.content{padding:24px}.hero h1{font-size:38px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cheerful Music AI OS</title>
+<style>
+:root{--red:#F93822;--bg:#08090b;--panel:#111317;--panel2:#17191f;--line:#292c33;--text:#f5f6f8;--muted:#969ba6;--ok:#34c759;--warn:#ff9f0a;--danger:#ff453a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:var(--bg);color:var(--text)}button,input{font:inherit}.hidden{display:none!important}
+button{cursor:pointer}.app-bg{min-height:100vh;background:radial-gradient(circle at 70% 0%,rgba(249,56,34,.12),transparent 28%),linear-gradient(180deg,#0a0b0e,#08090b)}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:28px}.login-shell{width:min(1120px,100%);display:grid;grid-template-columns:1.25fr .75fr;border:1px solid var(--line);border-radius:28px;overflow:hidden;background:rgba(17,19,23,.92);box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.login-hero{padding:72px;background:linear-gradient(145deg,rgba(249,56,34,.18),rgba(255,255,255,.01));min-height:640px;display:flex;flex-direction:column;justify-content:space-between}.mark{display:flex;align-items:center;gap:14px}.logo{width:46px;height:46px;border-radius:14px;background:var(--red);display:grid;place-items:center;font-weight:900;letter-spacing:-1px}.brand{font-size:19px;font-weight:800}.hero-copy h1{font-size:58px;line-height:1.02;letter-spacing:-2.6px;margin:0 0 20px}.hero-copy p{font-size:18px;color:#c4c7cf;line-height:1.7;max-width:580px}.hero-pills{display:flex;gap:10px;flex-wrap:wrap}.hero-pills span{border:1px solid rgba(255,255,255,.12);padding:9px 12px;border-radius:999px;color:#c7cad2;font-size:13px;background:rgba(255,255,255,.03)}
+.login-panel{padding:62px 54px;display:flex;flex-direction:column;justify-content:center}.login-panel h2{font-size:30px;letter-spacing:-.8px;margin:0 0 8px}.sub{color:var(--muted);line-height:1.6;margin-bottom:30px}.field{margin:14px 0}.field label{display:block;color:#c7cad2;font-size:13px;margin:0 0 8px}.field input{width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:14px;background:#0d0f13;color:var(--text);outline:none}.field input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(249,56,34,.15)}.remember{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;margin:12px 0 2px}.login-btn{margin-top:18px;border:0;border-radius:14px;padding:14px;background:var(--red);color:white;font-weight:800;box-shadow:0 12px 28px rgba(249,56,34,.25)}.login-btn:hover{filter:brightness(1.06)}.login-error{min-height:20px;margin-top:12px;color:#ff7c70;font-size:13px}.lang{display:flex;gap:8px;margin-top:20px}.lang button{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 10px;border-radius:10px}.lang button.active{color:white;border-color:#555a66}.security-note{margin-top:26px;color:#676c76;font-size:12px;line-height:1.6}
+/* app */
+.os{min-height:100vh;display:grid;grid-template-columns:248px 1fr}.sidebar{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);padding:22px 16px;background:rgba(10,11,14,.96);display:flex;flex-direction:column}.sidebar .mark{padding:4px 8px 18px}.sidebar .logo{width:38px;height:38px;border-radius:12px}.sidebar .brand{font-size:15px}.sidebar .tiny{font-size:11px;color:var(--muted);margin-top:3px}.nav{display:grid;gap:5px;margin-top:10px}.nav button{border:0;background:transparent;color:#aeb2bb;text-align:left;padding:11px 12px;border-radius:12px;display:flex;gap:10px;align-items:center}.nav button:hover{background:#15171c;color:white}.nav button.active{background:rgba(249,56,34,.14);color:#ff8171}.nav .ico{width:20px;text-align:center}.sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 8px 0}.user{font-weight:750;font-size:13px}.role{font-size:11px;color:var(--muted);margin-top:4px}.logout{width:100%;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:10px;background:transparent;color:#c6c9d0}
+.main{min-width:0}.topbar{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:rgba(8,9,11,.88);backdrop-filter:blur(16px);z-index:3}.page-title{font-weight:760}.top-actions{display:flex;gap:10px;align-items:center}.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(52,199,89,.12)}.avatar{width:34px;height:34px;border-radius:50%;background:#272a31;display:grid;place-items:center;font-weight:800}.content{padding:32px;max-width:1500px;margin:auto}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:28px}.hero h1{font-size:36px;letter-spacing:-1.4px;margin:0 0 8px}.hero p{margin:0;color:var(--muted)}.primary{border:0;background:var(--red);color:white;padding:11px 15px;border-radius:12px;font-weight:750}.ghost{border:1px solid var(--line);background:var(--panel);color:#d3d6dd;padding:10px 13px;border-radius:12px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.metric,.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px}.metric{padding:19px}.metric .label{color:var(--muted);font-size:12px}.metric .value{font-size:28px;font-weight:820;letter-spacing:-1px;margin-top:12px}.metric .change{font-size:12px;color:#8f949e;margin-top:7px}.grid{display:grid;grid-template-columns:1.4fr .6fr;gap:16px}.card{padding:20px}.card h3{margin:0;font-size:16px}.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.list{display:grid;gap:10px}.task,.activity{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#0e1014}.task-left{display:flex;gap:11px;align-items:center}.task-icon{width:36px;height:36px;border-radius:11px;background:#20232a;display:grid;place-items:center}.task b{font-size:13px}.task small,.activity small{display:block;color:var(--muted);margin-top:4px}.badge{font-size:11px;padding:6px 9px;border-radius:999px;background:#23262d;color:#c8cbd2}.badge.red{background:rgba(249,56,34,.14);color:#ff8273}.module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.module{padding:18px;border:1px solid var(--line);border-radius:16px;background:#0f1115;transition:.2s}.module:hover{transform:translateY(-2px);border-color:#464a54}.module .micon{font-size:24px}.module h4{margin:15px 0 6px}.module p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.module .open{margin-top:16px;color:#ff7b6c;font-size:12px;font-weight:700}.section{display:none}.section.active{display:block}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.feature{min-height:150px;padding:20px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--panel2),var(--panel));position:relative}.feature h3{margin:12px 0 8px}.feature p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}.feature .tag{position:absolute;right:14px;top:14px;font-size:10px;border:1px solid var(--line);border-radius:999px;padding:5px 7px;color:#aeb2bb}.feature.focus{border-color:rgba(249,56,34,.5);box-shadow:inset 0 0 0 1px rgba(249,56,34,.12)}.feature.focus .tag{background:rgba(249,56,34,.13);color:#ff8a7b;border-color:rgba(249,56,34,.25)}.empty-state{margin-top:20px;padding:16px;border:1px dashed #363941;border-radius:14px;color:var(--muted);font-size:13px}.toast{position:fixed;right:24px;bottom:24px;padding:13px 16px;border-radius:13px;background:#20232a;border:1px solid #3a3e47;box-shadow:0 18px 45px rgba(0,0,0,.4);opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:1100px){.metrics{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:repeat(2,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.login-shell{grid-template-columns:1fr}.login-hero{display:none}}
+@media(max-width:760px){.os{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.nav{grid-template-columns:repeat(2,1fr)}.topbar{position:relative}.content{padding:20px}.metrics,.module-grid,.feature-grid{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}}
+</style>
 </head>
 <body>
-  <section id="loginScreen" class="login-screen">
-    <div class="login-card">
-      <div class="brand">
-        <div class="brand-mark">CM</div>
-        <div><div class="brand-title">Cheerful Music AI OS</div><div class="brand-sub">INTERNAL OPERATING SYSTEM</div></div>
-      </div>
-      <h1>登录系统</h1>
-      <p>进入青风音乐 AI 工作操作系统。</p>
-      <form id="loginForm">
-        <div class="field"><label>工作邮箱</label><input id="email" type="email" placeholder="name@cheerfulmusic.com" required></div>
-        <div class="field"><label>密码</label><input id="password" type="password" placeholder="请输入密码" required></div>
-        <button class="login-btn" type="submit">进入系统</button>
-        <div id="loginError" class="login-error"></div>
-      </form>
-      <div class="login-note">第一阶段为内部前端原型。当前数据仅保存在本机浏览器中，尚未接入数据库。</div>
+<div class="app-bg">
+<section id="loginView" class="login">
+  <div class="login-shell">
+    <div class="login-hero">
+      <div class="mark"><div class="logo">CM</div><div><div class="brand">Cheerful Music AI OS</div><div class="tiny">Music intelligence, organized.</div></div></div>
+      <div class="hero-copy"><h1>让每一个部门，拥有自己的 AI 工作流。</h1><p>为青风音乐打造的内部 AI 操作系统。连接财务、版权、发行、A&R、推广、HR、法务与管理决策。</p></div>
+      <div class="hero-pills"><span>AI Finance</span><span>Royalty OS</span><span>A&R Workflow</span><span>CEO Intelligence</span></div>
     </div>
-  </section>
-
-  <div id="shell" class="shell hidden">
-    <aside class="sidebar">
-      <div class="side-brand">
-        <div class="brand-mark">CM</div>
-        <div><strong>Cheerful Music</strong><span>AI OS</span></div>
-      </div>
-      <nav class="nav">
-        <button class="active" data-page="dashboard"><span class="nav-icon">⌂</span>AI工作台</button>
-        <button data-page="finance"><span class="nav-icon">¥</span>AI财务</button>
-        <button data-page="copyright"><span class="nav-icon">©</span>AI版权</button>
-        <button data-page="distribution"><span class="nav-icon">↗</span>AI发行</button>
-        <button data-page="ar"><span class="nav-icon">♫</span>AI A&R</button>
-        <button data-page="marketing"><span class="nav-icon">✦</span>AI推广</button>
-        <button data-page="hr"><span class="nav-icon">◎</span>AI HR</button>
-        <button data-page="legal"><span class="nav-icon">§</span>AI法务</button>
-        <button data-page="ceo"><span class="nav-icon">▣</span>AI CEO</button>
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="user"><strong>Snow</strong><span>管理员 · Internal Preview</span></div>
-        <button id="logoutBtn" class="logout">退出登录</button>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <h2 id="pageTitle">AI工作台</h2>
-        <div class="status"><span class="dot"></span>系统运行正常</div>
-      </header>
-      <div class="content">
-        <section id="page-dashboard" class="page active">
-          <div class="hero">
-            <div><div class="eyebrow">Cheerful Music AI OS</div><h1>欢迎回来，Snow</h1><p>这是 Cheerful Music AI OS 的工作总览。</p></div>
-            <button class="primary-btn">创建新工作流</button>
-          </div>
-          <div class="stats">
-            <div class="card stat"><span>已启用工作流</span><strong>9</strong><small>覆盖核心部门</small></div>
-            <div class="card stat"><span>今日待办</span><strong>18</strong><small>其中 5 项高优先级</small></div>
-            <div class="card stat"><span>本周自动执行</span><strong>128</strong><small>较上周 +16%</small></div>
-            <div class="card stat"><span>系统状态</span><strong style="color:var(--green)">正常</strong><small>所有模块可用</small></div>
-          </div>
-          <div class="card panel">
-            <div class="panel-head"><h3>今日重点</h3><button class="secondary-btn">查看全部</button></div>
-            <div class="task"><div class="task-icon">¥</div><div class="task-copy"><strong>版税拆分等待确认</strong><span>AI财务 · 2026年第二季度</span></div><span class="badge">高优先级</span></div>
-            <div class="task"><div class="task-icon">♫</div><div class="task-copy"><strong>12首Demo待审核</strong><span>AI A&R · 国际写作营</span></div><span class="badge">待处理</span></div>
-            <div class="task"><div class="task-icon">◎</div><div class="task-copy"><strong>3位候选人面试分析</strong><span>AI HR · 本周招聘</span></div><span class="badge">今天</span></div>
-          </div>
-        </section>
-
-        <section id="page-finance" class="page">
-          <div class="hero">
-            <div><div class="eyebrow">AI Finance</div><h1>AI财务</h1><p>先建立版税系统最重要的两套主数据：歌曲与版本库、艺人与分成规则。</p></div>
-          </div>
-          <div class="finance-tools">
-            <div class="card tool-card"><h3>歌曲与版本库</h3><p>管理作品、录音版本、演唱者、ISRC、版本类型与发行信息。</p><button class="primary-btn" data-open-finance="catalog">进入版本库</button></div>
-            <div class="card tool-card"><h3>艺人与分成规则</h3><p>管理每位艺人的分成比例、计算基数、生效日期、结束日期和合同编号。</p><button class="primary-btn" data-open-finance="rules">进入分成规则</button></div>
-          </div>
-
-          <div id="financeWorkspace" class="card panel hidden" style="margin-top:24px">
-            <div class="subnav">
-              <button class="active" data-finance-tab="catalog">歌曲与版本库</button>
-              <button data-finance-tab="rules">艺人与分成规则</button>
-            </div>
-
-            <div id="catalogTab">
-              <div class="panel-head"><h3>歌曲与版本库</h3><button id="addRecordingBtn" class="primary-btn">新增录音版本</button></div>
-              <div class="table-wrap">
-                <table class="table">
-                  <thead><tr><th>内部ID</th><th>作品名</th><th>版本</th><th>演唱者</th><th>ISRC</th><th>版本类型</th><th>发行日期</th><th>操作</th></tr></thead>
-                  <tbody id="recordingTable"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <div id="rulesTab" class="hidden">
-              <div class="panel-head"><h3>艺人与分成规则</h3><button id="addRuleBtn" class="primary-btn">新增分成规则</button></div>
-              <div class="table-wrap">
-                <table class="table">
-                  <thead><tr><th>规则ID</th><th>录音版本</th><th>收款方</th><th>分成比例</th><th>计算基数</th><th>生效日期</th><th>结束日期</th><th>合同编号</th><th>操作</th></tr></thead>
-                  <tbody id="ruleTable"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="page-copyright" class="page"><div class="hero"><div><div class="eyebrow">AI Copyright</div><h1>AI版权</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-distribution" class="page"><div class="hero"><div><div class="eyebrow">AI Distribution</div><h1>AI发行</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-ar" class="page"><div class="hero"><div><div class="eyebrow">AI A&R</div><h1>AI A&R</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-marketing" class="page"><div class="hero"><div><div class="eyebrow">AI Marketing</div><h1>AI推广</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-hr" class="page"><div class="hero"><div><div class="eyebrow">AI HR</div><h1>AI HR</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-legal" class="page"><div class="hero"><div><div class="eyebrow">AI Legal</div><h1>AI法务</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-        <section id="page-ceo" class="page"><div class="hero"><div><div class="eyebrow">AI CEO</div><h1>AI CEO</h1><p>该模块将在下一阶段接入真实工作流。</p></div></div></section>
-      </div>
-    </main>
-  </div>
-
-  <div id="recordingModal" class="modal-backdrop">
-    <div class="modal">
-      <div class="modal-head"><h3>新增录音版本</h3><button class="close-btn" data-close-modal="recordingModal">×</button></div>
-      <form id="recordingForm">
-        <div class="form-grid">
-          <div><label>作品名</label><input name="workTitle" required placeholder="例如：莫问归期"></div>
-          <div><label>版本名称</label><input name="versionName" required placeholder="例如：原版 / DJ版 / Live版"></div>
-          <div><label>演唱者</label><input name="artist" required placeholder="艺人姓名"></div>
-          <div><label>ISRC</label><input name="isrc" required placeholder="CN-XXX-26-00001"></div>
-          <div><label>版本类型</label><select name="versionType"><option>原版</option><option>DJ版</option><option>Remix</option><option>Live版</option><option>翻唱版</option><option>合唱版</option><option>伴奏版</option></select></div>
-          <div><label>发行日期</label><input name="releaseDate" type="date" required></div>
-        </div>
-        <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="recordingModal">取消</button><button class="primary-btn" type="submit">保存</button></div>
-      </form>
+    <div class="login-panel">
+      <h2 id="loginTitle">欢迎回来</h2>
+      <div class="sub" id="loginSub">登录 Cheerful Music AI OS</div>
+      <div class="field"><label id="emailLabel">工作邮箱</label><input id="email" type="email" autocomplete="username" placeholder="name@cheerfulmusic.com"></div>
+      <div class="field"><label id="passwordLabel">密码</label><input id="password" type="password" autocomplete="current-password" placeholder="请输入密码"></div>
+      <label class="remember"><input id="remember" type="checkbox"> <span id="rememberText">记住登录状态</span></label>
+      <button class="login-btn" id="loginBtn">进入系统</button>
+      <div id="loginError" class="login-error"></div>
+      <div class="lang"><button id="zhBtn" class="active">中文</button><button id="enBtn">English</button></div>
+      <div class="security-note" id="securityNote">内部演示版本 · 尚未连接正式数据库与权限系统</div>
     </div>
   </div>
+</section>
 
-  <div id="ruleModal" class="modal-backdrop">
-    <div class="modal">
-      <div class="modal-head"><h3>新增分成规则</h3><button class="close-btn" data-close-modal="ruleModal">×</button></div>
-      <form id="ruleForm">
-        <div class="form-grid">
-          <div class="full"><label>选择录音版本</label><select name="recordingId" id="ruleRecordingSelect" required></select></div>
-          <div><label>收款方 / 艺人</label><input name="payee" required placeholder="艺人或权利人姓名"></div>
-          <div><label>分成比例（%）</label><input name="percentage" type="number" min="0" max="100" step="0.01" required></div>
-          <div><label>计算基数</label><select name="basis"><option>净收入 Net Receipts</option><option>毛收入 Gross Revenue</option><option>成本回收后收入 Recouped Net</option></select></div>
-          <div><label>合同编号</label><input name="contractNo" required placeholder="CM-ART-2026-001"></div>
-          <div><label>生效日期</label><input name="startDate" type="date" required></div>
-          <div><label>结束日期</label><input name="endDate" type="date"></div>
-        </div>
-        <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="ruleModal">取消</button><button class="primary-btn" type="submit">保存</button></div>
-      </form>
-    </div>
-  </div>
-
-  <div id="toast" class="toast"></div>
-
-  <script>
-    const TEST_ACCOUNT = { email:"snow@cheerfulmusic.com", password:"snow123456" };
-
-    const defaultRecordings = [
-      { id:"CM-R-000001", workTitle:"莫问归期", versionName:"原版", artist:"蒋雪儿", isrc:"CN-CM-20-00001", versionType:"原版", releaseDate:"2020-06-18" },
-      { id:"CM-R-000002", workTitle:"莫问归期", versionName:"DJ版", artist:"蒋雪儿", isrc:"CN-CM-21-00008", versionType:"DJ版", releaseDate:"2021-03-12" },
-      { id:"CM-R-000003", workTitle:"燕无歇", versionName:"原版", artist:"蒋雪儿", isrc:"CN-CM-20-00015", versionType:"原版", releaseDate:"2020-09-05" },
-      { id:"CM-R-000004", workTitle:"同名歌曲示例", versionName:"A艺人版", artist:"艺人A", isrc:"CN-CM-25-00031", versionType:"翻唱版", releaseDate:"2025-01-08" },
-      { id:"CM-R-000005", workTitle:"同名歌曲示例", versionName:"B艺人版", artist:"艺人B", isrc:"CN-CM-25-00032", versionType:"翻唱版", releaseDate:"2025-02-14" }
-    ];
-
-    const defaultRules = [
-      { id:"CM-RULE-0001", recordingId:"CM-R-000001", payee:"蒋雪儿", percentage:30, basis:"净收入 Net Receipts", startDate:"2024-01-01", endDate:"2026-12-31", contractNo:"CM-ART-2024-018" },
-      { id:"CM-RULE-0002", recordingId:"CM-R-000002", payee:"蒋雪儿", percentage:35, basis:"成本回收后收入 Recouped Net", startDate:"2025-01-01", endDate:"2027-12-31", contractNo:"CM-ART-2025-006" },
-      { id:"CM-RULE-0003", recordingId:"CM-R-000003", payee:"蒋雪儿", percentage:25, basis:"净收入 Net Receipts", startDate:"2023-01-01", endDate:"", contractNo:"CM-ART-2023-011" }
-    ];
-
-    let recordings = JSON.parse(localStorage.getItem("cheerful_recordings") || "null") || defaultRecordings;
-    let rules = JSON.parse(localStorage.getItem("cheerful_rules") || "null") || defaultRules;
-
-    const $ = (s) => document.querySelector(s);
-    const $$ = (s) => [...document.querySelectorAll(s)];
-
-    function saveAll(){
-      localStorage.setItem("cheerful_recordings", JSON.stringify(recordings));
-      localStorage.setItem("cheerful_rules", JSON.stringify(rules));
-    }
-    function toast(message){
-      const el = $("#toast"); el.textContent = message; el.classList.add("show");
-      clearTimeout(window.__toast); window.__toast=setTimeout(()=>el.classList.remove("show"),2200);
-    }
-
-    $("#loginForm").addEventListener("submit", e=>{
-      e.preventDefault();
-      const email=$("#email").value.trim().toLowerCase();
-      const password=$("#password").value;
-      if(email!==TEST_ACCOUNT.email){ $("#loginError").textContent="账号不存在"; return; }
-      if(password!==TEST_ACCOUNT.password){ $("#loginError").textContent="密码错误"; return; }
-      $("#loginError").textContent="";
-      $("#loginScreen").classList.add("hidden");
-      $("#shell").classList.remove("hidden");
-    });
-    $("#logoutBtn").addEventListener("click",()=>{
-      $("#shell").classList.add("hidden"); $("#loginScreen").classList.remove("hidden"); $("#password").value="";
-    });
-
-    const titles={dashboard:"AI工作台",finance:"AI财务",copyright:"AI版权",distribution:"AI发行",ar:"AI A&R",marketing:"AI推广",hr:"AI HR",legal:"AI法务",ceo:"AI CEO"};
-    $$(".nav button").forEach(btn=>btn.addEventListener("click",()=>{
-      $$(".nav button").forEach(b=>b.classList.remove("active")); btn.classList.add("active");
-      $$(".page").forEach(p=>p.classList.remove("active")); $("#page-"+btn.dataset.page).classList.add("active");
-      $("#pageTitle").textContent=titles[btn.dataset.page];
-    }));
-
-    function openFinance(tab){
-      $("#financeWorkspace").classList.remove("hidden");
-      switchFinanceTab(tab);
-      $("#financeWorkspace").scrollIntoView({behavior:"smooth",block:"start"});
-    }
-    $$("[data-open-finance]").forEach(b=>b.addEventListener("click",()=>openFinance(b.dataset.openFinance)));
-    $$("[data-finance-tab]").forEach(b=>b.addEventListener("click",()=>switchFinanceTab(b.dataset.financeTab)));
-    function switchFinanceTab(tab){
-      $$("[data-finance-tab]").forEach(b=>b.classList.toggle("active",b.dataset.financeTab===tab));
-      $("#catalogTab").classList.toggle("hidden",tab!=="catalog");
-      $("#rulesTab").classList.toggle("hidden",tab!=="rules");
-      renderAll();
-    }
-
-    function recordingLabel(id){
-      const r=recordings.find(x=>x.id===id);
-      return r ? `${r.workTitle} · ${r.versionName} · ${r.artist}` : id;
-    }
-    function renderRecordings(){
-      const tbody=$("#recordingTable");
-      tbody.innerHTML = recordings.length ? recordings.map(r=>`
-        <tr>
-          <td>${r.id}</td><td>${r.workTitle}</td><td>${r.versionName}</td><td>${r.artist}</td><td>${r.isrc}</td><td>${r.versionType}</td><td>${r.releaseDate}</td>
-          <td><button class="link-btn" data-delete-recording="${r.id}">删除</button></td>
-        </tr>`).join("") : `<tr><td colspan="8" class="empty">暂无录音版本</td></tr>`;
-      $$("[data-delete-recording]").forEach(b=>b.addEventListener("click",()=>{
-        if(rules.some(x=>x.recordingId===b.dataset.deleteRecording)){ alert("该录音版本已有分成规则，不能删除。请先删除对应分成规则。"); return; }
-        recordings=recordings.filter(x=>x.id!==b.dataset.deleteRecording); saveAll(); renderAll(); toast("录音版本已删除");
-      }));
-    }
-    function renderRules(){
-      const tbody=$("#ruleTable");
-      tbody.innerHTML = rules.length ? rules.map(r=>`
-        <tr>
-          <td>${r.id}</td><td>${recordingLabel(r.recordingId)}</td><td>${r.payee}</td><td>${r.percentage}%</td><td>${r.basis}</td><td>${r.startDate}</td><td>${r.endDate||"长期有效"}</td><td>${r.contractNo}</td>
-          <td><button class="link-btn" data-delete-rule="${r.id}">删除</button></td>
-        </tr>`).join("") : `<tr><td colspan="9" class="empty">暂无分成规则</td></tr>`;
-      $$("[data-delete-rule]").forEach(b=>b.addEventListener("click",()=>{
-        rules=rules.filter(x=>x.id!==b.dataset.deleteRule); saveAll(); renderAll(); toast("分成规则已删除");
-      }));
-    }
-    function renderRuleSelect(){
-      $("#ruleRecordingSelect").innerHTML = recordings.map(r=>`<option value="${r.id}">${recordingLabel(r.id)} · ${r.isrc}</option>`).join("");
-    }
-    function renderAll(){ renderRecordings(); renderRules(); renderRuleSelect(); }
-
-    $("#addRecordingBtn").addEventListener("click",()=>$("#recordingModal").classList.add("show"));
-    $("#addRuleBtn").addEventListener("click",()=>$("#ruleModal").classList.add("show"));
-    $$("[data-close-modal]").forEach(b=>b.addEventListener("click",()=>$("#"+b.dataset.closeModal).classList.remove("show")));
-    $$(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
-
-    $("#recordingForm").addEventListener("submit",e=>{
-      e.preventDefault();
-      const data=Object.fromEntries(new FormData(e.target).entries());
-      if(recordings.some(r=>r.isrc.trim().toUpperCase()===data.isrc.trim().toUpperCase())){ alert("ISRC 已存在，请检查是否为同一录音版本。"); return; }
-      const next=String(recordings.length+1).padStart(6,"0");
-      recordings.push({id:"CM-R-"+next,...data});
-      saveAll(); renderAll(); e.target.reset(); $("#recordingModal").classList.remove("show"); toast("录音版本已新增");
-    });
-
-    $("#ruleForm").addEventListener("submit",e=>{
-      e.preventDefault();
-      const data=Object.fromEntries(new FormData(e.target).entries());
-      data.percentage=Number(data.percentage);
-      if(data.endDate && data.endDate < data.startDate){ alert("结束日期不能早于生效日期。"); return; }
-      const overlapping = rules.some(r => r.recordingId===data.recordingId && r.payee===data.payee && !(data.endDate && data.endDate < r.startDate) && !(r.endDate && r.endDate < data.startDate));
-      if(overlapping && !confirm("检测到同一收款方在相同录音版本上存在重叠生效期。仍然保存吗？")) return;
-      const next=String(rules.length+1).padStart(4,"0");
-      rules.push({id:"CM-RULE-"+next,...data});
-      saveAll(); renderAll(); e.target.reset(); $("#ruleModal").classList.remove("show"); toast("分成规则已新增");
-    });
-
-    renderAll();
-  </script>
+<section id="osView" class="os hidden">
+  <aside class="sidebar">
+    <div class="mark"><div class="logo">CM</div><div><div class="brand">Cheerful Music</div><div class="tiny">AI OS</div></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-bottom"><div class="user">Snow</div><div class="role">管理员 · Internal Preview</div><button class="logout" id="logoutBtn">退出登录</button></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div class="page-title" id="pageTitle">AI工作台</div><div class="top-actions"><div class="status"><span class="dot"></span>系统运行正常</div><div class="avatar">S</div></div></header>
+    <div class="content" id="content"></div>
+  </main>
+</section>
+</div>
+<div class="toast" id="toast">该模块将在下一阶段接入真实工作流。</div>
+<script>
+const USERS={
+  "snow@cheerfulmusic.com":{password:"snow123456",role:"admin"},
+  "member1@cheerfulmusic.com":{password:"member123456",role:"member"},
+  "member2@cheerfulmusic.com":{password:"member123456",role:"member"},
+  "member3@cheerfulmusic.com":{password:"member123456",role:"member"},
+  "member4@cheerfulmusic.com":{password:"member123456",role:"member"},
+  "member5@cheerfulmusic.com":{password:"member123456",role:"member"}
+};
+const modules=[
+ {id:'dashboard',icon:'⌂',name:'AI工作台',desc:'公司 AI 工作流总览'},
+ {id:'finance',icon:'¥',name:'AI财务',desc:'资金、经营与版税'},
+ {id:'copyright',icon:'©',name:'AI版权',desc:'歌曲、权利人与登记'},
+ {id:'release',icon:'↗',name:'AI发行',desc:'发行计划与元数据'},
+ {id:'ar',icon:'♫',name:'AI A&R',desc:'Demo与制作流程'},
+ {id:'marketing',icon:'✦',name:'AI推广',desc:'知识库与多语言内容'},
+ {id:'hr',icon:'◎',name:'AI HR',desc:'招聘、培训与绩效'},
+ {id:'legal',icon:'§',name:'AI法务',desc:'合同、授权与风险'},
+ {id:'ceo',icon:'◫',name:'AI CEO',desc:'经营、战略与决策'}
+];
+const features={
+ finance:[['资金周报','自动汇总公司资金变化与重点事项'],['经营数据分析','收入、成本、利润与趋势分析'],['版税分成系统','季度版税拆分、核算与异常审核','第二阶段重点'],['歌曲发行收入明细','按平台、歌曲、地区与币种查看'],['付款与成本回收','应付版税、预付款与Recoupment'],['财务异常提醒','识别漏收、重复、突降与缺失数据'],['现金流预测','预测未来30至90天现金流']],
+ copyright:[['歌曲版权资料库','集中管理歌曲、ISRC、UPC与版权信息'],['词曲权利人管理','管理Writer、Publisher及比例'],['Split Sheet管理','检查分成合计与签署状态'],['PRS资料管理','词曲作品登记与结算资料'],['PPL资料管理','录音及邻接权资料维护'],['版权登记检查','自动检查缺失与冲突字段'],['版税异常追踪','追踪平台和代理结算异常']],
+ release:[['发行计划','统一管理上线时间和责任人'],['Metadata检查','发行前检查艺人、词曲与版本信息'],['ISRC与UPC管理','统一维护歌曲和产品编码'],['DSP资料提交','整理平台发行所需资料'],['发行进度追踪','查看制作、审核与上线节点'],['发行收入明细','连接平台收入与歌曲主数据'],['上线异常检查','发现未上线、重复或信息错误']],
+ ar:[['Demo采买','管理来源、报价、状态与决策'],['Demo评估','分析Hook、市场和艺人适配'],['歌曲制作流程进度','跟踪录音、混音、母带与交付'],['艺人与歌曲匹配','为歌曲推荐合适艺人'],['制作预算','管理制作与推广预算'],['写作营管理','管理创作者、歌曲与文件'],['发行准备检查','检查合同、Split与素材']],
+ marketing:[['推广知识库','沉淀青风推广方法和案例'],['新人培训系统','按岗位建立学习路径'],['推广方案生成','生成平台和艺人推广计划'],['社媒数据分析','分析内容表现和评论反馈'],['多语言视频生成','生成多语言口播与字幕版本'],['海外本地化','适配不同市场的文案与素材'],['推广复盘','自动形成项目复盘报告']],
+ hr:[['简历筛选','按岗位要求筛选候选人'],['AI面试分析','总结回答、能力与风险点'],['候选人评分','形成统一评分卡'],['岗位JD生成','根据团队需求生成JD'],['新员工培训','自动分配岗位知识课程'],['绩效总结','汇总目标、成果与问题'],['员工工作流管理','为每个岗位建立AI流程']],
+ legal:[['合同资料库','集中管理合同和附件'],['合同条款识别','提取权利、期限、付款和分成'],['合同风险检查','发现冲突、缺失与高风险条款'],['授权管理','管理使用范围、地区与期限'],['合同版本对比','对比不同版本修改内容'],['付款条款提醒','提醒付款和结算节点'],['法务待办','集中管理审核和签署任务']],
+ ceo:[['公司经营总览','收入、利润、项目和组织概览'],['部门工作摘要','自动汇总各部门重点进展'],['收入与利润分析','识别增长来源和成本变化'],['项目风险提醒','显示高风险项目与责任人'],['战略研究','形成行业和竞争分析'],['决策备忘录','记录关键决策与依据'],['周度管理报告','生成CEO周报与行动建议']]
+};
+let current='dashboard',lang='zh';
+const $=id=>document.getElementById(id);
+function buildNav(){ $('nav').innerHTML=modules.map(m=>`<button data-id="${m.id}" class="${m.id===current?'active':''}"><span class="ico">${m.icon}</span>${m.name}</button>`).join(''); $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>openSection(b.dataset.id)); }
+function dashboard(){return `<section class="section active"><div class="hero"><div><h1>欢迎回来，Snow</h1><p>这是 Cheerful Music AI OS 的工作总览。</p></div><button class="primary" onclick="showToast()">创建新工作流</button></div><div class="metrics"><div class="metric"><div class="label">已启用工作流</div><div class="value">9</div><div class="change">覆盖核心部门</div></div><div class="metric"><div class="label">今日待办</div><div class="value">18</div><div class="change">其中5项高优先级</div></div><div class="metric"><div class="label">本周自动执行</div><div class="value">128</div><div class="change">较上周 +16%</div></div><div class="metric"><div class="label">系统状态</div><div class="value" style="color:#6ee788">正常</div><div class="change">所有模块可用</div></div></div><div class="grid"><div class="card"><div class="card-head"><h3>今日重点</h3><button class="ghost" onclick="showToast()">查看全部</button></div><div class="list"><div class="task"><div class="task-left"><div class="task-icon">¥</div><div><b>版税拆分等待确认</b><small>AI财务 · 2026年第二季度</small></div></div><span class="badge red">高优先级</span></div><div class="task"><div class="task-left"><div class="task-icon">♫</div><div><b>12首Demo待审核</b><small>AI A&R · 国际写作营</small></div></div><span class="badge">待处理</span></div><div class="task"><div class="task-left"><div class="task-icon">◎</div><div><b>3位候选人面试分析</b><small>AI HR · 本周招聘</small></div></div><span class="badge">今天</span></div><div class="task"><div class="task-left"><div class="task-icon">✦</div><div><b>海外推广素材本地化</b><small>AI推广 · 5条短视频</small></div></div><span class="badge">处理中</span></div></div></div><div class="card"><div class="card-head"><h3>最近活动</h3></div><div class="list"><div class="activity"><div><b>更新分成规则</b><small>财务团队 · 18分钟前</small></div></div><div class="activity"><div><b>新增发行计划</b><small>A&R团队 · 1小时前</small></div></div><div class="activity"><div><b>完成合同检查</b><small>法务团队 · 今天</small></div></div></div></div></div><div class="card" style="margin-top:16px"><div class="card-head"><h3>部门入口</h3><span class="badge">9个模块</span></div><div class="module-grid">${modules.filter(m=>m.id!=='dashboard').map(m=>`<div class="module" onclick="openSection('${m.id}')"><div class="micon">${m.icon}</div><h4>${m.name}</h4><p>${m.desc}</p><div class="open">打开模块 →</div></div>`).join('')}</div></div></section>`}
+function featurePage(id){const m=modules.find(x=>x.id===id);return `<section class="section active"><div class="hero"><div><h1>${m.name}</h1><p>${m.desc}。第一阶段为页面框架，真实数据与工作流将在后续接入。</p></div><button class="primary" onclick="showToast()">新建任务</button></div><div class="feature-grid">${features[id].map((f,i)=>`<div class="feature ${f[2]?'focus':''}" onclick="showToast()"><span class="tag">${f[2]||'即将接入'}</span><div style="font-size:23px">${m.icon}</div><h3>${f[0]}</h3><p>${f[1]}</p></div>`).join('')}</div><div class="empty-state">当前页面使用模拟内容。第二阶段将优先建设 AI财务 → 版税分成系统。</div></section>`}
+function openSection(id){current=id;buildNav();const m=modules.find(x=>x.id===id);$('pageTitle').textContent=m.name;$('content').innerHTML=id==='dashboard'?dashboard():featurePage(id)}
+function showToast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function login(){const email=$('email').value.trim().toLowerCase(),password=$('password').value;const u=USERS[email];$('loginError').textContent='';if(!u){$('loginError').textContent=lang==='zh'?'账号不存在':'Account not found';return}if(u.password!==password){$('loginError').textContent=lang==='zh'?'密码错误':'Wrong password';return}if($('remember').checked)localStorage.setItem('cm_ai_os_user',email);$('loginView').classList.add('hidden');$('osView').classList.remove('hidden');buildNav();openSection('dashboard')}
+function logout(){localStorage.removeItem('cm_ai_os_user');$('osView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value=''}
+function setLang(v){lang=v;$('zhBtn').classList.toggle('active',v==='zh');$('enBtn').classList.toggle('active',v==='en');const en=v==='en';$('loginTitle').textContent=en?'Welcome back':'欢迎回来';$('loginSub').textContent=en?'Sign in to Cheerful Music AI OS':'登录 Cheerful Music AI OS';$('emailLabel').textContent=en?'Work email':'工作邮箱';$('passwordLabel').textContent=en?'Password':'密码';$('rememberText').textContent=en?'Remember me':'记住登录状态';$('loginBtn').textContent=en?'Enter system':'进入系统';$('securityNote').textContent=en?'Internal preview · Database and formal permissions are not connected yet':'内部演示版本 · 尚未连接正式数据库与权限系统'}
+$('loginBtn').onclick=login;$('logoutBtn').onclick=logout;$('zhBtn').onclick=()=>setLang('zh');$('enBtn').onclick=()=>setLang('en');$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+const saved=localStorage.getItem('cm_ai_os_user');if(saved&&USERS[saved]){$('email').value=saved;$('remember').checked=true}
+</script>
 </body>
 </html>
