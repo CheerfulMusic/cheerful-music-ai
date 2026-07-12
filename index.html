@@ -16,6 +16,44 @@ button{cursor:pointer}.app-bg{min-height:100vh;background:radial-gradient(circle
 .os{min-height:100vh;display:grid;grid-template-columns:248px 1fr}.sidebar{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);padding:22px 16px;background:rgba(10,11,14,.96);display:flex;flex-direction:column}.sidebar .mark{padding:4px 8px 18px}.sidebar .logo{width:38px;height:38px;border-radius:12px}.sidebar .brand{font-size:15px}.sidebar .tiny{font-size:11px;color:var(--muted);margin-top:3px}.nav{display:grid;gap:5px;margin-top:10px}.nav button{border:0;background:transparent;color:#aeb2bb;text-align:left;padding:11px 12px;border-radius:12px;display:flex;gap:10px;align-items:center}.nav button:hover{background:#15171c;color:white}.nav button.active{background:rgba(249,56,34,.14);color:#ff8171}.nav .ico{width:20px;text-align:center}.sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 8px 0}.user{font-weight:750;font-size:13px}.role{font-size:11px;color:var(--muted);margin-top:4px}.logout{width:100%;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:10px;background:transparent;color:#c6c9d0}
 .main{min-width:0}.topbar{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:rgba(8,9,11,.88);backdrop-filter:blur(16px);z-index:3}.page-title{font-weight:760}.top-actions{display:flex;gap:10px;align-items:center}.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(52,199,89,.12)}.avatar{width:34px;height:34px;border-radius:50%;background:#272a31;display:grid;place-items:center;font-weight:800}.content{padding:32px;max-width:1500px;margin:auto}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:28px}.hero h1{font-size:36px;letter-spacing:-1.4px;margin:0 0 8px}.hero p{margin:0;color:var(--muted)}.primary{border:0;background:var(--red);color:white;padding:11px 15px;border-radius:12px;font-weight:750}.ghost{border:1px solid var(--line);background:var(--panel);color:#d3d6dd;padding:10px 13px;border-radius:12px}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.metric,.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px}.metric{padding:19px}.metric .label{color:var(--muted);font-size:12px}.metric .value{font-size:28px;font-weight:820;letter-spacing:-1px;margin-top:12px}.metric .change{font-size:12px;color:#8f949e;margin-top:7px}.grid{display:grid;grid-template-columns:1.4fr .6fr;gap:16px}.card{padding:20px}.card h3{margin:0;font-size:16px}.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.list{display:grid;gap:10px}.task,.activity{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#0e1014}.task-left{display:flex;gap:11px;align-items:center}.task-icon{width:36px;height:36px;border-radius:11px;background:#20232a;display:grid;place-items:center}.task b{font-size:13px}.task small,.activity small{display:block;color:var(--muted);margin-top:4px}.badge{font-size:11px;padding:6px 9px;border-radius:999px;background:#23262d;color:#c8cbd2}.badge.red{background:rgba(249,56,34,.14);color:#ff8273}.module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.module{padding:18px;border:1px solid var(--line);border-radius:16px;background:#0f1115;transition:.2s}.module:hover{transform:translateY(-2px);border-color:#464a54}.module .micon{font-size:24px}.module h4{margin:15px 0 6px}.module p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.module .open{margin-top:16px;color:#ff7b6c;font-size:12px;font-weight:700}.section{display:none}.section.active{display:block}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.feature{min-height:150px;padding:20px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--panel2),var(--panel));position:relative}.feature h3{margin:12px 0 8px}.feature p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}.feature .tag{position:absolute;right:14px;top:14px;font-size:10px;border:1px solid var(--line);border-radius:999px;padding:5px 7px;color:#aeb2bb}.feature.focus{border-color:rgba(249,56,34,.5);box-shadow:inset 0 0 0 1px rgba(249,56,34,.12)}.feature.focus .tag{background:rgba(249,56,34,.13);color:#ff8a7b;border-color:rgba(249,56,34,.25)}.empty-state{margin-top:20px;padding:16px;border:1px dashed #363941;border-radius:14px;color:var(--muted);font-size:13px}.toast{position:fixed;right:24px;bottom:24px;padding:13px 16px;border-radius:13px;background:#20232a;border:1px solid #3a3e47;box-shadow:0 18px 45px rgba(0,0,0,.4);opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translateY(0)}
+
+/* AI财务：歌曲与版本库 + 艺人与分成规则 */
+.finance-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.finance-summary .metric{min-height:112px}
+.finance-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.finance-tab{border:1px solid var(--line);background:var(--panel);color:#c7cad2;padding:10px 14px;border-radius:11px}
+.finance-tab.active{background:rgba(249,56,34,.14);border-color:rgba(249,56,34,.38);color:#ff8171}
+.finance-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.finance-toolbar-left{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.finance-search,.finance-select{height:40px;border:1px solid var(--line);border-radius:11px;background:#0d0f13;color:var(--text);padding:0 12px;outline:none}
+.finance-search{min-width:230px}
+.finance-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+.finance-table{width:100%;min-width:980px;border-collapse:collapse}
+.finance-table th,.finance-table td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:middle}
+.finance-table th{color:var(--muted);font-weight:700;background:#0e1014}
+.finance-table td{background:#111317}
+.finance-table tr:last-child td{border-bottom:0}
+.finance-link{border:0;background:transparent;color:#ff8171;padding:0 6px}
+.finance-chip{display:inline-flex;padding:5px 8px;border-radius:999px;background:#23262d;color:#c8cbd2;font-size:10px}
+.finance-chip.ok{background:rgba(52,199,89,.12);color:#7be995}
+.finance-chip.warn{background:rgba(255,159,10,.13);color:#ffc266}
+.finance-empty{padding:38px;text-align:center;color:var(--muted)}
+.finance-note{margin-top:14px;padding:13px;border:1px dashed #363941;border-radius:12px;color:var(--muted);font-size:12px;line-height:1.6}
+.finance-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.64);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.finance-modal-backdrop.show{display:flex}
+.finance-modal{width:min(760px,100%);max-height:90vh;overflow:auto;border:1px solid var(--line);border-radius:20px;background:#111317;padding:24px;box-shadow:0 28px 80px rgba(0,0,0,.5)}
+.finance-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.finance-modal-head h3{margin:0}
+.finance-close{width:34px;height:34px;border:1px solid var(--line);border-radius:10px;background:transparent;color:white}
+.finance-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+.finance-form-grid .full{grid-column:1/-1}
+.finance-form-grid label{display:block;color:#c7cad2;font-size:12px;margin-bottom:7px}
+.finance-form-grid input,.finance-form-grid select{width:100%;height:43px;border:1px solid var(--line);border-radius:11px;background:#0d0f13;color:white;padding:0 12px;outline:none}
+.finance-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.finance-danger{color:#ff7c70}
+@media(max-width:1100px){.finance-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.finance-summary{grid-template-columns:1fr}.finance-toolbar{align-items:stretch;flex-direction:column}.finance-search{min-width:0;width:100%}.finance-form-grid{grid-template-columns:1fr}.finance-form-grid .full{grid-column:auto}}
+
 @media(max-width:1100px){.metrics{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:repeat(2,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.login-shell{grid-template-columns:1fr}.login-hero{display:none}}
 @media(max-width:760px){.os{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.nav{grid-template-columns:repeat(2,1fr)}.topbar{position:relative}.content{padding:20px}.metrics,.module-grid,.feature-grid{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}}
 </style>
@@ -89,9 +127,139 @@ const features={
 let current='dashboard',lang='zh';
 const $=id=>document.getElementById(id);
 function buildNav(){ $('nav').innerHTML=modules.map(m=>`<button data-id="${m.id}" class="${m.id===current?'active':''}"><span class="ico">${m.icon}</span>${m.name}</button>`).join(''); $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>openSection(b.dataset.id)); }
+
+const defaultRecordings=[
+ {id:'CM-R-000001',workTitle:'莫问归期',versionName:'原版',artist:'蒋雪儿',isrc:'CN-CM-20-00001',versionType:'原版',releaseDate:'2020-06-18'},
+ {id:'CM-R-000002',workTitle:'莫问归期',versionName:'DJ版',artist:'蒋雪儿',isrc:'CN-CM-21-00008',versionType:'DJ版',releaseDate:'2021-03-12'},
+ {id:'CM-R-000003',workTitle:'燕无歇',versionName:'原版',artist:'蒋雪儿',isrc:'CN-CM-20-00015',versionType:'原版',releaseDate:'2020-09-05'},
+ {id:'CM-R-000004',workTitle:'同名歌曲示例',versionName:'A艺人版',artist:'艺人A',isrc:'CN-CM-25-00031',versionType:'翻唱版',releaseDate:'2025-01-08'},
+ {id:'CM-R-000005',workTitle:'同名歌曲示例',versionName:'B艺人版',artist:'艺人B',isrc:'CN-CM-25-00032',versionType:'翻唱版',releaseDate:'2025-02-14'}
+];
+const defaultRoyaltyRules=[
+ {id:'CM-RULE-0001',recordingId:'CM-R-000001',payee:'蒋雪儿',percentage:30,basis:'净收入 Net Receipts',startDate:'2024-01-01',endDate:'2026-12-31',contractNo:'CM-ART-2024-018'},
+ {id:'CM-RULE-0002',recordingId:'CM-R-000002',payee:'蒋雪儿',percentage:35,basis:'成本回收后收入 Recouped Net',startDate:'2025-01-01',endDate:'2027-12-31',contractNo:'CM-ART-2025-006'},
+ {id:'CM-RULE-0003',recordingId:'CM-R-000003',payee:'蒋雪儿',percentage:25,basis:'净收入 Net Receipts',startDate:'2023-01-01',endDate:'',contractNo:'CM-ART-2023-011'}
+];
+let financeRecordings=JSON.parse(localStorage.getItem('cm_finance_recordings')||'null')||defaultRecordings;
+let financeRules=JSON.parse(localStorage.getItem('cm_finance_rules')||'null')||defaultRoyaltyRules;
+let financeTab='catalog';
+let financeSearch='';
+
+function saveFinanceData(){
+ localStorage.setItem('cm_finance_recordings',JSON.stringify(financeRecordings));
+ localStorage.setItem('cm_finance_rules',JSON.stringify(financeRules));
+}
+function financeRecordingLabel(id){
+ const r=financeRecordings.find(x=>x.id===id);
+ return r?`${r.workTitle} · ${r.versionName} · ${r.artist}`:id;
+}
+function nextRecordingId(){
+ const max=financeRecordings.reduce((n,r)=>Math.max(n,Number((r.id.match(/\d+$/)||['0'])[0])),0)+1;
+ return 'CM-R-'+String(max).padStart(6,'0');
+}
+function nextRuleId(){
+ const max=financeRules.reduce((n,r)=>Math.max(n,Number((r.id.match(/\d+$/)||['0'])[0])),0)+1;
+ return 'CM-RULE-'+String(max).padStart(4,'0');
+}
+function financePage(){
+ const artistCount=new Set(financeRecordings.map(r=>r.artist)).size;
+ const activeRules=financeRules.filter(r=>!r.endDate||r.endDate>=new Date().toISOString().slice(0,10)).length;
+ return `<section class="section active">
+ <div class="hero"><div><h1>AI财务</h1><p>版税系统第一阶段：先维护歌曲与录音版本，以及每位艺人的分成规则和有效年限。</p></div><button class="primary" onclick="openFinanceModal(financeTab==='catalog'?'recording':'rule')">${financeTab==='catalog'?'新增录音版本':'新增分成规则'}</button></div>
+ <div class="finance-summary">
+   <div class="metric"><div class="label">录音版本</div><div class="value">${financeRecordings.length}</div><div class="change">每个版本独立识别</div></div>
+   <div class="metric"><div class="label">涉及艺人</div><div class="value">${artistCount}</div><div class="change">同名歌曲可区分演唱者</div></div>
+   <div class="metric"><div class="label">分成规则</div><div class="value">${financeRules.length}</div><div class="change">按录音版本和合同管理</div></div>
+   <div class="metric"><div class="label">当前有效规则</div><div class="value">${activeRules}</div><div class="change">根据起止日期判断</div></div>
+ </div>
+ <div class="card">
+   <div class="finance-tabs">
+     <button class="finance-tab ${financeTab==='catalog'?'active':''}" onclick="setFinanceTab('catalog')">歌曲与版本库</button>
+     <button class="finance-tab ${financeTab==='rules'?'active':''}" onclick="setFinanceTab('rules')">艺人与分成规则</button>
+   </div>
+   ${financeTab==='catalog'?renderRecordingManager():renderRuleManager()}
+ </div>
+ <div class="finance-note">当前是前端原型：你新增的数据只保存在当前浏览器。正式接入数据库后，团队成员才会共享同一套歌曲和分成数据。</div>
+ ${renderFinanceModals()}
+ </section>`;
+}
+function renderRecordingManager(){
+ const q=financeSearch.trim().toLowerCase();
+ const rows=financeRecordings.filter(r=>!q||[r.id,r.workTitle,r.versionName,r.artist,r.isrc,r.versionType].join(' ').toLowerCase().includes(q));
+ return `<div class="finance-toolbar">
+   <div class="finance-toolbar-left"><input class="finance-search" placeholder="搜索歌名、艺人、ISRC或版本" value="${financeSearch.replace(/"/g,'&quot;')}" oninput="setFinanceSearch(this.value)"></div>
+   <button class="primary" onclick="openFinanceModal('recording')">新增录音版本</button>
+ </div>
+ <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>内部ID</th><th>作品名</th><th>版本</th><th>演唱者</th><th>ISRC</th><th>版本类型</th><th>发行日期</th><th>状态</th><th>操作</th></tr></thead>
+ <tbody>${rows.length?rows.map(r=>`<tr><td>${r.id}</td><td>${r.workTitle}</td><td>${r.versionName}</td><td>${r.artist}</td><td>${r.isrc}</td><td><span class="finance-chip">${r.versionType}</span></td><td>${r.releaseDate}</td><td><span class="finance-chip ok">正常</span></td><td><button class="finance-link" onclick="deleteRecording('${r.id}')">删除</button></td></tr>`).join(''):`<tr><td colspan="9" class="finance-empty">没有找到匹配记录</td></tr>`}</tbody></table></div>`;
+}
+function renderRuleManager(){
+ const q=financeSearch.trim().toLowerCase();
+ const rows=financeRules.filter(r=>!q||[r.id,financeRecordingLabel(r.recordingId),r.payee,r.basis,r.contractNo].join(' ').toLowerCase().includes(q));
+ return `<div class="finance-toolbar">
+   <div class="finance-toolbar-left"><input class="finance-search" placeholder="搜索艺人、歌曲、合同编号" value="${financeSearch.replace(/"/g,'&quot;')}" oninput="setFinanceSearch(this.value)"></div>
+   <button class="primary" onclick="openFinanceModal('rule')">新增分成规则</button>
+ </div>
+ <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>规则ID</th><th>录音版本</th><th>收款方</th><th>比例</th><th>计算基数</th><th>生效日期</th><th>结束日期</th><th>合同编号</th><th>状态</th><th>操作</th></tr></thead>
+ <tbody>${rows.length?rows.map(r=>{const active=!r.endDate||r.endDate>=new Date().toISOString().slice(0,10);return `<tr><td>${r.id}</td><td>${financeRecordingLabel(r.recordingId)}</td><td>${r.payee}</td><td>${r.percentage}%</td><td>${r.basis}</td><td>${r.startDate}</td><td>${r.endDate||'长期有效'}</td><td>${r.contractNo}</td><td><span class="finance-chip ${active?'ok':'warn'}">${active?'有效':'已结束'}</span></td><td><button class="finance-link" onclick="deleteRule('${r.id}')">删除</button></td></tr>`}).join(''):`<tr><td colspan="10" class="finance-empty">没有找到匹配记录</td></tr>`}</tbody></table></div>`;
+}
+function renderFinanceModals(){
+ const options=financeRecordings.map(r=>`<option value="${r.id}">${financeRecordingLabel(r.id)} · ${r.isrc}</option>`).join('');
+ return `<div id="recordingModal" class="finance-modal-backdrop" onclick="closeFinanceModalFromBackdrop(event,'recordingModal')"><div class="finance-modal">
+   <div class="finance-modal-head"><h3>新增录音版本</h3><button class="finance-close" onclick="closeFinanceModal('recordingModal')">×</button></div>
+   <form onsubmit="submitRecording(event)"><div class="finance-form-grid">
+     <div><label>作品名</label><input name="workTitle" required placeholder="例如：莫问归期"></div>
+     <div><label>版本名称</label><input name="versionName" required placeholder="原版 / DJ版 / Live版"></div>
+     <div><label>演唱者</label><input name="artist" required placeholder="艺人姓名"></div>
+     <div><label>ISRC</label><input name="isrc" required placeholder="CN-XXX-26-00001"></div>
+     <div><label>版本类型</label><select name="versionType"><option>原版</option><option>DJ版</option><option>Remix</option><option>Live版</option><option>翻唱版</option><option>合唱版</option><option>伴奏版</option></select></div>
+     <div><label>发行日期</label><input name="releaseDate" type="date" required></div>
+   </div><div class="finance-actions"><button type="button" class="ghost" onclick="closeFinanceModal('recordingModal')">取消</button><button class="primary" type="submit">保存</button></div></form>
+ </div></div>
+ <div id="ruleModal" class="finance-modal-backdrop" onclick="closeFinanceModalFromBackdrop(event,'ruleModal')"><div class="finance-modal">
+   <div class="finance-modal-head"><h3>新增分成规则</h3><button class="finance-close" onclick="closeFinanceModal('ruleModal')">×</button></div>
+   <form onsubmit="submitRule(event)"><div class="finance-form-grid">
+     <div class="full"><label>录音版本</label><select name="recordingId" required>${options}</select></div>
+     <div><label>收款方 / 艺人</label><input name="payee" required placeholder="艺人或权利人姓名"></div>
+     <div><label>分成比例（%）</label><input name="percentage" type="number" min="0" max="100" step="0.01" required></div>
+     <div><label>计算基数</label><select name="basis"><option>净收入 Net Receipts</option><option>毛收入 Gross Revenue</option><option>成本回收后收入 Recouped Net</option></select></div>
+     <div><label>合同编号</label><input name="contractNo" required placeholder="CM-ART-2026-001"></div>
+     <div><label>生效日期</label><input name="startDate" type="date" required></div>
+     <div><label>结束日期</label><input name="endDate" type="date"></div>
+   </div><div class="finance-actions"><button type="button" class="ghost" onclick="closeFinanceModal('ruleModal')">取消</button><button class="primary" type="submit">保存</button></div></form>
+ </div></div>`;
+}
+function setFinanceTab(tab){financeTab=tab;financeSearch='';openSection('finance')}
+function setFinanceSearch(value){financeSearch=value;const pos=document.querySelector('.finance-search')?.selectionStart;openSection('finance');const input=document.querySelector('.finance-search');if(input){input.focus();input.setSelectionRange(pos,pos)}}
+function openFinanceModal(type){const id=type==='recording'?'recordingModal':'ruleModal';document.getElementById(id)?.classList.add('show')}
+function closeFinanceModal(id){document.getElementById(id)?.classList.remove('show')}
+function closeFinanceModalFromBackdrop(event,id){if(event.target.id===id)closeFinanceModal(id)}
+function submitRecording(event){
+ event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());
+ if(financeRecordings.some(r=>r.isrc.trim().toUpperCase()===data.isrc.trim().toUpperCase())){alert('ISRC 已存在，请确认是否为同一录音版本。');return}
+ financeRecordings.push({id:nextRecordingId(),...data});saveFinanceData();openSection('finance');showToastMessage('录音版本已保存')
+}
+function submitRule(event){
+ event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());data.percentage=Number(data.percentage);
+ if(data.endDate&&data.endDate<data.startDate){alert('结束日期不能早于生效日期。');return}
+ const overlap=financeRules.some(r=>r.recordingId===data.recordingId&&r.payee===data.payee&&!(data.endDate&&data.endDate<r.startDate)&&!(r.endDate&&r.endDate<data.startDate));
+ if(overlap&&!confirm('检测到同一收款方在该录音版本上存在重叠有效期。仍然保存吗？'))return;
+ financeRules.push({id:nextRuleId(),...data});saveFinanceData();openSection('finance');showToastMessage('分成规则已保存')
+}
+function deleteRecording(id){
+ if(financeRules.some(r=>r.recordingId===id)){alert('该录音版本已有分成规则，请先删除对应规则。');return}
+ if(!confirm('确认删除这个录音版本吗？'))return;
+ financeRecordings=financeRecordings.filter(r=>r.id!==id);saveFinanceData();openSection('finance')
+}
+function deleteRule(id){
+ if(!confirm('确认删除这条分成规则吗？'))return;
+ financeRules=financeRules.filter(r=>r.id!==id);saveFinanceData();openSection('finance')
+}
+function showToastMessage(message){const t=$('toast');t.textContent=message;t.classList.add('show');setTimeout(()=>{t.classList.remove('show');t.textContent='该模块将在下一阶段接入真实工作流。'},2200)}
+
 function dashboard(){return `<section class="section active"><div class="hero"><div><h1>欢迎回来，Snow</h1><p>这是 Cheerful Music AI OS 的工作总览。</p></div><button class="primary" onclick="showToast()">创建新工作流</button></div><div class="metrics"><div class="metric"><div class="label">已启用工作流</div><div class="value">9</div><div class="change">覆盖核心部门</div></div><div class="metric"><div class="label">今日待办</div><div class="value">18</div><div class="change">其中5项高优先级</div></div><div class="metric"><div class="label">本周自动执行</div><div class="value">128</div><div class="change">较上周 +16%</div></div><div class="metric"><div class="label">系统状态</div><div class="value" style="color:#6ee788">正常</div><div class="change">所有模块可用</div></div></div><div class="grid"><div class="card"><div class="card-head"><h3>今日重点</h3><button class="ghost" onclick="showToast()">查看全部</button></div><div class="list"><div class="task"><div class="task-left"><div class="task-icon">¥</div><div><b>版税拆分等待确认</b><small>AI财务 · 2026年第二季度</small></div></div><span class="badge red">高优先级</span></div><div class="task"><div class="task-left"><div class="task-icon">♫</div><div><b>12首Demo待审核</b><small>AI A&R · 国际写作营</small></div></div><span class="badge">待处理</span></div><div class="task"><div class="task-left"><div class="task-icon">◎</div><div><b>3位候选人面试分析</b><small>AI HR · 本周招聘</small></div></div><span class="badge">今天</span></div><div class="task"><div class="task-left"><div class="task-icon">✦</div><div><b>海外推广素材本地化</b><small>AI推广 · 5条短视频</small></div></div><span class="badge">处理中</span></div></div></div><div class="card"><div class="card-head"><h3>最近活动</h3></div><div class="list"><div class="activity"><div><b>更新分成规则</b><small>财务团队 · 18分钟前</small></div></div><div class="activity"><div><b>新增发行计划</b><small>A&R团队 · 1小时前</small></div></div><div class="activity"><div><b>完成合同检查</b><small>法务团队 · 今天</small></div></div></div></div></div><div class="card" style="margin-top:16px"><div class="card-head"><h3>部门入口</h3><span class="badge">9个模块</span></div><div class="module-grid">${modules.filter(m=>m.id!=='dashboard').map(m=>`<div class="module" onclick="openSection('${m.id}')"><div class="micon">${m.icon}</div><h4>${m.name}</h4><p>${m.desc}</p><div class="open">打开模块 →</div></div>`).join('')}</div></div></section>`}
 function featurePage(id){const m=modules.find(x=>x.id===id);return `<section class="section active"><div class="hero"><div><h1>${m.name}</h1><p>${m.desc}。第一阶段为页面框架，真实数据与工作流将在后续接入。</p></div><button class="primary" onclick="showToast()">新建任务</button></div><div class="feature-grid">${features[id].map((f,i)=>`<div class="feature ${f[2]?'focus':''}" onclick="showToast()"><span class="tag">${f[2]||'即将接入'}</span><div style="font-size:23px">${m.icon}</div><h3>${f[0]}</h3><p>${f[1]}</p></div>`).join('')}</div><div class="empty-state">当前页面使用模拟内容。第二阶段将优先建设 AI财务 → 版税分成系统。</div></section>`}
-function openSection(id){current=id;buildNav();const m=modules.find(x=>x.id===id);$('pageTitle').textContent=m.name;$('content').innerHTML=id==='dashboard'?dashboard():featurePage(id)}
+function openSection(id){current=id;buildNav();const m=modules.find(x=>x.id===id);$('pageTitle').textContent=m.name;$('content').innerHTML=id==='dashboard'?dashboard():(id==='finance'?financePage():featurePage(id))}
 function showToast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function login(){const email=$('email').value.trim().toLowerCase(),password=$('password').value;const u=USERS[email];$('loginError').textContent='';if(!u){$('loginError').textContent=lang==='zh'?'账号不存在':'Account not found';return}if(u.password!==password){$('loginError').textContent=lang==='zh'?'密码错误':'Wrong password';return}if($('remember').checked)localStorage.setItem('cm_ai_os_user',email);$('loginView').classList.add('hidden');$('osView').classList.remove('hidden');buildNav();openSection('dashboard')}
 function logout(){localStorage.removeItem('cm_ai_os_user');$('osView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value=''}
