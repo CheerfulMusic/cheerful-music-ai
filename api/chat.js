@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { isAllowedOrigin, requireSession } = require('./_gpt-auth');
+const { readAuthorizedBusinessContext } = require('./_business-context');
 const { writeAudit, writeMessages } = require('./_gpt-store');
 
 const rateBuckets = new Map();
@@ -142,7 +143,20 @@ module.exports = async function handler(req, res) {
   const conversationId = String(body.conversationId || crypto.randomUUID()).slice(0, 100);
   const wantsWebSearch = Boolean(body.webSearch) && user.permissions.includes('web_search');
   const wantsContext = Boolean(body.includeContext) && user.permissions.includes('internal_context');
-  const businessContext = wantsContext ? restrictBusinessContext(body.businessContext, user) : null;
+  let businessContext = null;
+  let businessContextSource = 'none';
+  if (wantsContext) {
+    const serverContext = await readAuthorizedBusinessContext(user, messages[messages.length - 1].content);
+    if (serverContext.configured) {
+      businessContext = safeContext(serverContext.data);
+      businessContextSource = 'supabase';
+    } else {
+      // Keeps the current front-end prototype usable until Supabase is configured.
+      // Once Supabase is configured, browser-supplied internal context is never trusted.
+      businessContext = restrictBusinessContext(body.businessContext, user);
+      businessContextSource = businessContext ? 'prototype' : 'none';
+    }
+  }
 
   const instructions = [
     '你是 Cheerful GPT，青风音乐内部 AI 助手。默认使用简体中文，回答清晰、准确、可执行。',
@@ -183,7 +197,7 @@ module.exports = async function handler(req, res) {
     actorRole: user.role,
     action: 'chat.requested',
     conversationId,
-    metadata: { webSearch: wantsWebSearch, internalContext: Boolean(businessContext), financialData: user.permissions.includes('financial_data'), messageCount: messages.length, attachmentCount: messages[messages.length - 1].attachments.length }
+    metadata: { webSearch: wantsWebSearch, internalContext: Boolean(businessContext), contextSource: businessContextSource, financialData: user.permissions.includes('financial_data'), messageCount: messages.length, attachmentCount: messages[messages.length - 1].attachments.length }
   });
 
   let upstream;

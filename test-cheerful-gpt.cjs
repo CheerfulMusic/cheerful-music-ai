@@ -48,6 +48,15 @@ async function main() {
     assert.strictEqual(extract(current('index.html')), extract(baseline('index.html')));
   });
 
+  await test('Dashboard implementation remains byte-for-byte unchanged', () => {
+    const extract = html => {
+      const match = html.match(/function dashboard\(\)\{[\s\S]*?\nfunction featurePage/);
+      assert(match, 'dashboard function not found');
+      return match[0];
+    };
+    assert.strictEqual(extract(current('index.html')), extract(baseline('index.html')));
+  });
+
   await test('browser credentials are removed and unified RBAC is loaded', () => {
     const index = current('index.html');
     assert(!index.includes('snow123456'));
@@ -57,7 +66,7 @@ async function main() {
   });
 
   await test('no OpenAI API key value is present in browser assets', () => {
-    const browserCode = [current('index.html'), current('js/cheerful-rbac.js'), current('js/cheerful-gpt.js'), current('css/cheerful-gpt.css')].join('\n');
+    const browserCode = [current('index.html'), current('js/cheerful-rbac.js'), current('js/cheerful-gpt.js'), current('js/supabase-sync.js'), current('css/cheerful-gpt.css')].join('\n');
     assert(!/sk-[A-Za-z0-9_-]{20,}/.test(browserCode));
     assert(!browserCode.includes('process.env.OPENAI_API_KEY'));
   });

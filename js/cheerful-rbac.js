@@ -142,6 +142,7 @@
       const data = await response.json();
       if (response.ok && data.authenticated && data.user) {
         enterSystem(data.user);
+        document.dispatchEvent(new CustomEvent('cheerful:session', { detail: data.user }));
         return;
       }
     } catch (_) {}

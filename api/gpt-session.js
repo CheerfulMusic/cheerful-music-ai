@@ -9,6 +9,7 @@ const {
   setSessionCookie
 } = require('./_gpt-auth');
 const { writeAudit } = require('./_gpt-store');
+const { signInWithPassword } = require('./_supabase');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -45,7 +46,18 @@ module.exports = async function handler(req, res) {
   const code = String(body.accessCode || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
-  const user = email ? authenticateCredentials(email, password) : authenticateAccessCode(code);
+  let user = null;
+  if (email) {
+    try {
+      const supabaseAuth = await signInWithPassword(email, password);
+      user = supabaseAuth.user || authenticateCredentials(email, password);
+    } catch (error) {
+      console.error(JSON.stringify({ type: 'cheerful_supabase_auth_error', message: error.message }));
+      user = authenticateCredentials(email, password);
+    }
+  } else {
+    user = authenticateAccessCode(code);
+  }
   if (!user) {
     res.statusCode = 401;
     await writeAudit({ actorId: 'anonymous', actorName: 'Unknown', actorRole: 'none', action: 'session.denied' });
