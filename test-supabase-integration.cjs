@@ -29,6 +29,35 @@ async function main() {
   const supabase = require('./api/_supabase');
   const auth = require('./api/_gpt-auth');
 
+  await test('health endpoint confirms configuration and required database tables without exposing secrets', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      assert.ok(
+        ['/users?', '/songs?', '/royalty_rules?', '/royalty_imports?'].some(part => url.includes(part)),
+        `Unexpected health-check URL: ${url}`
+      );
+      return new Response('[]', { status: 200 });
+    };
+    try {
+      const health = require('./api/health');
+      const req = { method: 'GET', headers: {} };
+      const res = responseMock();
+      await health(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(res.statusCode, 200);
+      assert.deepStrictEqual(payload, {
+        ok: true,
+        supabaseConfigured: true,
+        authConfigured: true,
+        schemaReady: true
+      });
+      assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_URL));
+      assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_SECRET_KEY));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('new Supabase publishable and secret keys are supported without browser exposure', async () => {
     const calls = [];
     const originalFetch = global.fetch;
