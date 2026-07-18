@@ -143,7 +143,17 @@ function buildReport(){
   const fileDuplicate=(isrcKey&&seenISRC.has(isrcKey))||(compositeKey&&seenComposite.has(compositeKey));
   if(isrcKey)seenISRC.add(isrcKey);if(compositeKey)seenComposite.add(compositeKey);
   if(fileDuplicate)warnings.push('文件内录音版本重复');
-  const existing=(isrcKey&&existingByISRC.get(isrcKey))||(compositeKey&&existingByComposite.get(compositeKey))||null;
+  const isrcExisting=isrcKey&&existingByISRC.get(isrcKey);
+  const compositeExisting=compositeKey&&existingByComposite.get(compositeKey);
+  const existing=isrcExisting||compositeExisting||null;
+  if(isrcExisting){
+   const titleConflict=values.workTitle&&isrcExisting.workTitle&&normalize(values.workTitle)!==normalize(isrcExisting.workTitle);
+   const artistConflict=values.artist&&isrcExisting.artist&&normalize(values.artist)!==normalize(isrcExisting.artist);
+   if(titleConflict||artistConflict)issues.push('ISRC 已存在，但歌名或艺人与已有记录不一致，请人工确认');
+  }
+  if(compositeExisting&&isrcKey&&normalizeCode(compositeExisting.isrc)&&normalizeCode(compositeExisting.isrc)!==isrcKey){
+   issues.push('同一作品／艺人／版本已存在，但 ISRC 不一致，请人工确认');
+  }
   const incomingRecord={...values,workId};
   let state='new',targetId='';
   if(issues.length)state='error';
@@ -218,8 +228,8 @@ function renderUpload(){
  drop.addEventListener('drop',event=>{event.preventDefault();drop.classList.remove('drag');handleSongBulkFile(event.dataTransfer.files)})
 }
 function renderMapping(){
- const content=document.getElementById('songBulkImportContent');
- content.innerHTML=`${modalHead('字段自动识别、验证与批量导入 · Step 2')}${stepHeader()}${fileSummary()}<div class="sbi-help">左侧为系统标准字段，右侧为文件列名。Writer 用于在没有 Work ID / ISWC 时，与 Song Title 共同识别作品。</div><div class="sbi-mapping">${fields.map(field=>`<div class="sbi-map-row"><div><b>${esc(field.label)}${field.required?' *':''}</b><small>${esc(field.description)}</small></div><select onchange="updateSongBulkMapping('${field.key}',this.value)">${mappingOptions(field)}</select></div>`).join('')}</div>${actions(1,'下一步：数据预览',3)}`
+ const content=document.getElementById('songBulkImportContent'),report=bulkState.report||buildReport();
+ content.innerHTML=`${modalHead('字段自动识别、验证与批量导入 · Step 2')}${stepHeader()}${fileSummary()}<div class="sbi-stats"><div class="sbi-stat"><span>文件行数</span><b>${report.total.toLocaleString()}</b></div><div class="sbi-stat"><span>候选新增录音</span><b style="color:#7be995">${report.newItems.length.toLocaleString()}</b></div><div class="sbi-stat"><span>已有数据更新</span><b style="color:#8bc7ff">${report.updates.length.toLocaleString()}</b></div><div class="sbi-stat"><span>错误／重复</span><b style="color:#ff8171">${report.failCount.toLocaleString()}</b></div><div class="sbi-stat"><span>识别字段</span><b>${report.recognized}/${fields.length}</b></div></div><div class="sbi-help">左侧为系统标准字段，右侧为文件列名。Writer 用于在没有 Work ID / ISWC 时，与 Song Title 共同识别作品。</div><div class="sbi-mapping">${fields.map(field=>`<div class="sbi-map-row"><div><b>${esc(field.label)}${field.required?' *':''}</b><small>${esc(field.description)}</small></div><select onchange="updateSongBulkMapping('${field.key}',this.value)">${mappingOptions(field)}</select></div>`).join('')}</div>${actions(1,'下一步：数据预览',3)}`
 }
 function renderDataPreview(){
  const report=bulkState.report=buildReport(),content=document.getElementById('songBulkImportContent');
