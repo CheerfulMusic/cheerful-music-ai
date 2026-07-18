@@ -165,7 +165,7 @@ function financePage(){
  const artistCount=new Set(financeRecordings.map(r=>r.artist)).size;
  const activeRules=financeRules.filter(r=>!r.endDate||r.endDate>=new Date().toISOString().slice(0,10)).length;
  return `<section class="section active">
- <div class="hero"><div><h1>AI财务</h1><p>版税系统第一阶段：先维护歌曲与录音版本，以及每位艺人的分成规则和有效年限。</p></div><button class="primary" onclick="openFinanceModal(financeTab==='catalog'?'recording':'rule')">${financeTab==='catalog'?'新增录音版本':'新增分成规则'}</button></div>
+ <div class="hero"><div><h1>AI财务</h1><p>版税系统第一阶段：先维护歌曲与录音版本，以及每位艺人的分成规则和有效年限。</p></div>${financeTab==='imports'?'<button class="primary" onclick="openRoyaltyImportModal()">上传平台报表</button>':`<button class="primary" onclick="openFinanceModal(financeTab==='catalog'?'recording':'rule')">${financeTab==='catalog'?'新增录音版本':'新增分成规则'}</button>`}</div>
  <div class="finance-summary">
    <div class="metric"><div class="label">录音版本</div><div class="value">${financeRecordings.length}</div><div class="change">每个版本独立识别</div></div>
    <div class="metric"><div class="label">涉及艺人</div><div class="value">${artistCount}</div><div class="change">同名歌曲可区分演唱者</div></div>
@@ -176,8 +176,9 @@ function financePage(){
    <div class="finance-tabs">
      <button class="finance-tab ${financeTab==='catalog'?'active':''}" onclick="setFinanceTab('catalog')">歌曲与版本库</button>
      <button class="finance-tab ${financeTab==='rules'?'active':''}" onclick="setFinanceTab('rules')">艺人与分成规则</button>
+     <button class="finance-tab ${financeTab==='imports'?'active':''}" onclick="setFinanceTab('imports')">平台版税导入</button>
    </div>
-   ${financeTab==='catalog'?renderRecordingManager():renderRuleManager()}
+   ${financeTab==='catalog'?renderRecordingManager():(financeTab==='rules'?renderRuleManager():renderRoyaltyImportManager())}
  </div>
  <div class="finance-note">当前是前端原型：你新增的数据只保存在当前浏览器。正式接入数据库后，团队成员才会共享同一套歌曲和分成数据。</div>
  ${renderFinanceModals()}
@@ -267,5 +268,7 @@ function setLang(v){lang=v;$('zhBtn').classList.toggle('active',v==='zh');$('enB
 $('loginBtn').onclick=login;$('logoutBtn').onclick=logout;$('zhBtn').onclick=()=>setLang('zh');$('enBtn').onclick=()=>setLang('en');$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 const saved=localStorage.getItem('cm_ai_os_user');if(saved&&USERS[saved]){$('email').value=saved;$('remember').checked=true}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/finance.js"></script>
 </body>
 </html>
