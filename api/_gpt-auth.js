@@ -4,11 +4,17 @@ const COOKIE_NAME = 'cm_gpt_session';
 const SESSION_SECONDS = 60 * 60 * 12;
 
 const ROLE_PERMISSIONS = Object.freeze({
-  admin: ['chat', 'web_search', 'catalog_context', 'file_upload', 'history', 'audit_view'],
-  finance: ['chat', 'web_search', 'catalog_context', 'financial_data', 'file_upload', 'history'],
-  ceo: ['chat', 'web_search', 'catalog_context', 'financial_data', 'file_upload', 'history', 'audit_view'],
-  member: ['chat', 'web_search', 'catalog_context', 'file_upload', 'history'],
-  viewer: ['chat', 'history']
+  ceo: ['chat', 'web_search', 'internal_context', 'catalog_context', 'financial_data', 'hr_data', 'legal_data', 'file_upload', 'history', 'audit_view', 'user_admin', 'song_library_read', 'song_library_write', 'royalty_rules_read', 'royalty_rules_write', 'platform_royalty_read', 'platform_royalty_write', 'song_matching_read', 'song_matching_write', 'royalty_calculation', 'financial_reports', 'contracts_full', 'recruitment_read', 'recruitment_write'],
+  finance: ['chat', 'web_search', 'internal_context', 'catalog_context', 'financial_data', 'file_upload', 'history', 'song_library_read', 'song_library_write', 'royalty_rules_read', 'royalty_rules_write', 'platform_royalty_read', 'platform_royalty_write', 'song_matching_read', 'song_matching_write', 'royalty_calculation', 'financial_reports', 'contracts_limited'],
+  ar: ['chat', 'web_search', 'internal_context', 'catalog_context', 'music_data', 'file_upload', 'history', 'song_library_read', 'song_library_write', 'song_matching_read', 'song_matching_write'],
+  hr: ['chat', 'web_search', 'internal_context', 'hr_data', 'file_upload', 'history', 'recruitment_read', 'recruitment_write'],
+  copyright: ['chat', 'web_search', 'history'],
+  distribution: ['chat', 'web_search', 'history'],
+  marketing: ['chat', 'web_search', 'history'],
+  legal: ['chat', 'web_search', 'internal_context', 'legal_data', 'file_upload', 'history', 'contracts_full'],
+  admin: ['chat', 'web_search', 'history', 'audit_view'],
+  member: ['chat', 'web_search', 'history'],
+  viewer: ['chat', 'web_search', 'history']
 });
 
 function b64url(value) {
@@ -44,6 +50,7 @@ function issueSession(user) {
   const payload = b64url(JSON.stringify({
     sub: user.id || crypto.randomUUID(),
     name: user.name || 'Cheerful User',
+    email: user.email || '',
     role: ROLE_PERMISSIONS[user.role] ? user.role : 'viewer',
     iat: now,
     exp: now + SESSION_SECONDS
@@ -112,12 +119,16 @@ function accessUsers() {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Object.entries(parsed).map(([code, value], index) => ({
-      code,
-      id: value.id || `user-${index + 1}`,
-      name: value.name || `User ${index + 1}`,
-      role: ROLE_PERMISSIONS[value.role] ? value.role : 'viewer'
-    }));
+    return Object.entries(parsed).map(([code, value], index) => {
+      const id = value.id || `user-${index + 1}`;
+      return {
+        code,
+        id,
+        name: value.name || `User ${index + 1}`,
+        email: String(value.email || (String(id).includes('@') ? id : `${id}@cheerfulmusic.com`)).trim().toLowerCase(),
+        role: ROLE_PERMISSIONS[value.role] ? value.role : 'viewer'
+      };
+    });
   } catch (_) {
     return [];
   }
@@ -126,6 +137,12 @@ function accessUsers() {
 function authenticateAccessCode(code) {
   if (!code) return null;
   return accessUsers().find(user => safeEqual(user.code, code)) || null;
+}
+
+function authenticateCredentials(email, password) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !password) return null;
+  return accessUsers().find(user => safeEqual(user.email, normalizedEmail) && safeEqual(user.code, password)) || null;
 }
 
 function setSessionCookie(res, token) {
@@ -147,6 +164,7 @@ function isAllowedOrigin(req) {
 module.exports = {
   COOKIE_NAME,
   authenticateAccessCode,
+  authenticateCredentials,
   clearSessionCookie,
   isAllowedOrigin,
   issueSession,
