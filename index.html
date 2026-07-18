@@ -175,7 +175,7 @@ function financePage(){
  <div class="card">
    <div class="finance-tabs">
      <button class="finance-tab ${financeTab==='catalog'?'active':''}" onclick="setFinanceTab('catalog')">歌曲与版本库</button>
-     <button class="finance-tab ${financeTab==='rules'?'active':''}" onclick="setFinanceTab('rules')">艺人与分成规则</button>
+     <button class="finance-tab ${financeTab==='rules'?'active':''}" onclick="setFinanceTab('rules')">版税规则</button>
      <button class="finance-tab ${financeTab==='imports'?'active':''}" onclick="setFinanceTab('imports')">平台版税导入</button>
      <button class="finance-tab ${financeTab==='matching'?'active':''}" onclick="setFinanceTab('matching')">AI自动匹配</button>
      <button class="finance-tab ${financeTab==='calculation'?'active':''}" onclick="setFinanceTab('calculation')">AI版税计算</button>
@@ -275,5 +275,6 @@ const saved=localStorage.getItem('cm_ai_os_user');if(saved&&USERS[saved]){$('ema
 <script src="js/finance.js"></script>
 <script src="js/finance-workflow.js"></script>
 <script src="js/song-library-bulk-import.js"></script>
+<script src="js/royalty-matrix-bulk-import.js"></script>
 </body>
 </html>
