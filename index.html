@@ -96,14 +96,8 @@ button{cursor:pointer}.app-bg{min-height:100vh;background:radial-gradient(circle
 </div>
 <div class="toast" id="toast">该模块将在下一阶段接入真实工作流。</div>
 <script>
-const USERS={
-  "snow@cheerfulmusic.com":{password:"snow123456",role:"admin"},
-  "member1@cheerfulmusic.com":{password:"member123456",role:"member"},
-  "member2@cheerfulmusic.com":{password:"member123456",role:"member"},
-  "member3@cheerfulmusic.com":{password:"member123456",role:"member"},
-  "member4@cheerfulmusic.com":{password:"member123456",role:"member"},
-  "member5@cheerfulmusic.com":{password:"member123456",role:"member"}
-};
+// Credentials are verified by the server. Never place passwords in browser code.
+const USERS={};
 const modules=[
  {id:'dashboard',icon:'⌂',name:'AI工作台',desc:'公司 AI 工作流总览'},
  {id:'finance',icon:'¥',name:'AI财务',desc:'资金、经营与版税'},
@@ -270,13 +264,14 @@ function login(){const email=$('email').value.trim().toLowerCase(),password=$('p
 function logout(){localStorage.removeItem('cm_ai_os_user');$('osView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value=''}
 function setLang(v){lang=v;$('zhBtn').classList.toggle('active',v==='zh');$('enBtn').classList.toggle('active',v==='en');const en=v==='en';$('loginTitle').textContent=en?'Welcome back':'欢迎回来';$('loginSub').textContent=en?'Sign in to Cheerful Music AI OS':'登录 Cheerful Music AI OS';$('emailLabel').textContent=en?'Work email':'工作邮箱';$('passwordLabel').textContent=en?'Password':'密码';$('rememberText').textContent=en?'Remember me':'记住登录状态';$('loginBtn').textContent=en?'Enter system':'进入系统';$('securityNote').textContent=en?'Internal preview · Database and formal permissions are not connected yet':'内部演示版本 · 尚未连接正式数据库与权限系统'}
 $('loginBtn').onclick=login;$('logoutBtn').onclick=logout;$('zhBtn').onclick=()=>setLang('zh');$('enBtn').onclick=()=>setLang('en');$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
-const saved=localStorage.getItem('cm_ai_os_user');if(saved&&USERS[saved]){$('email').value=saved;$('remember').checked=true}
+const saved=localStorage.getItem('cm_ai_os_user');if(saved){$('email').value=saved;$('remember').checked=true}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/finance.js"></script>
 <script src="js/finance-workflow.js"></script>
 <script src="js/song-library-bulk-import.js"></script>
 <script src="js/royalty-matrix-bulk-import.js"></script>
+<script src="js/cheerful-rbac.js"></script>
 <script src="js/cheerful-gpt.js"></script>
 </body>
 </html>

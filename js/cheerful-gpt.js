@@ -14,7 +14,8 @@
     pendingAttachments: [],
     webSearch: true,
     includeContext: true,
-    audit: null
+    audit: null,
+    scopeOpen: false
   };
 
   function uid() {
@@ -77,7 +78,7 @@
   }
 
   function roleLabel(role) {
-    return { admin: '管理员', finance: '财务', ceo: 'CEO', member: '成员', viewer: '只读' }[role] || role;
+    return { admin: '管理员', finance: '财务', ceo: 'CEO', ar: 'A&R', hr: 'HR', copyright: '版权', distribution: '发行', marketing: '推广', legal: '法务', member: '成员', viewer: '只读' }[role] || role;
   }
 
   function can(permission) {
@@ -153,9 +154,9 @@
 
   function renderGate() {
     return `<div class="cgpt-gate"><div class="cgpt-gate-card">
-      <div class="cgpt-logo">C</div><h2>启用 Cheerful GPT</h2>
-      <p>请输入由管理员配置的内部访问码。访问码仅发送到服务器换取 HttpOnly 安全会话，不会写入网页代码或浏览器存储。</p>
-      <form id="cgptGateForm"><input id="cgptAccessCode" type="password" autocomplete="one-time-code" placeholder="内部访问码" required><button type="submit">验证并进入</button></form>
+      <div class="cgpt-logo">C</div><h2>登录会话已失效</h2>
+      <p>Cheerful GPT 与 Cheerful Music AI OS 使用同一个登录身份。请返回登录页面重新验证，不需要第二个访问码。</p>
+      <button type="button" id="cgptReturnLogin">返回登录页面</button>
       <div class="cgpt-gate-error" id="cgptGateError">${escapeHtml(gptState.sessionError || '')}</div>
     </div></div>`;
   }
@@ -163,7 +164,7 @@
   function renderChat() {
     const conversation = ensureConversation();
     const permissions = gptState.session.permissions || [];
-    const contextDisabled = !permissions.includes('catalog_context');
+    const contextDisabled = !permissions.includes('internal_context');
     const searchDisabled = !permissions.includes('web_search');
     return `<div class="cgpt-shell">
       <aside class="cgpt-sidebar">
@@ -178,23 +179,66 @@
           <div class="cgpt-controls">
             <label class="cgpt-toggle ${searchDisabled ? 'disabled' : ''}"><input id="cgptWebSearch" type="checkbox" ${gptState.webSearch && !searchDisabled ? 'checked' : ''} ${searchDisabled ? 'disabled' : ''}>联网搜索</label>
             <label class="cgpt-toggle ${contextDisabled ? 'disabled' : ''}"><input id="cgptContext" type="checkbox" ${gptState.includeContext && !contextDisabled ? 'checked' : ''} ${contextDisabled ? 'disabled' : ''}>使用内部数据</label>
+            <button class="cgpt-action" id="cgptScopeButton">权限范围</button>
             ${can('audit_view') ? '<button class="cgpt-action" id="cgptAuditButton">审计日志</button>' : ''}
           </div>
         </header>
         <div class="cgpt-messages" id="cgptMessages">${renderMessages(conversation)}</div>
         <div class="cgpt-composer">
-          ${!can('catalog_context') ? '<div class="cgpt-banner">当前角色只能对话，不能读取内部歌曲或业务数据。</div>' : (!can('financial_data') ? '<div class="cgpt-banner">当前角色可查询歌曲目录，但版税规则、分成比例、结算金额和平台收入已由服务器隐藏；仅财务和 CEO 可访问。</div>' : '')}
+          ${renderDataBoundary()}
           <div class="cgpt-compose-box">
             ${gptState.pendingAttachments.length ? `<div class="cgpt-attachments">${gptState.pendingAttachments.map((file, index) => `<span class="cgpt-file-chip">${escapeHtml(file.name)}<button data-cgpt-remove-file="${index}" title="移除">×</button></span>`).join('')}</div>` : ''}
-            <textarea id="cgptInput" rows="1" placeholder="询问歌曲、版权、版税、推广、A&R 或公司经营问题…"></textarea><div class="cgpt-compose-foot"><div class="cgpt-compose-left"><button class="cgpt-attach" id="cgptAttach" ${can('file_upload') && !gptState.uploading ? '' : 'disabled'} title="上传合同、PDF、Excel 或 CSV">＋ 文件</button><input id="cgptFileInput" type="file" hidden multiple accept=".pdf,.csv,.xlsx,.xls,.doc,.docx,.txt,.md,.json,.rtf"><span class="cgpt-compose-note">${gptState.uploading ? '正在安全上传文件…' : 'AI 可能出错；金额与合同结论需人工审核。'}</span></div><button class="cgpt-send" id="cgptSend" title="发送" ${gptState.uploading ? 'disabled' : ''}>↑</button></div>
+            <textarea id="cgptInput" rows="1" placeholder="${can('internal_context') ? '询问当前账号获准访问的内部数据，或搜索公开资料…' : '搜索公开资料、行业新闻、市场趋势或提出工作问题…'}"></textarea><div class="cgpt-compose-foot"><div class="cgpt-compose-left"><button class="cgpt-attach" id="cgptAttach" ${can('file_upload') && !gptState.uploading ? '' : 'disabled'} title="上传合同、PDF、Excel 或 CSV">＋ 文件</button><input id="cgptFileInput" type="file" hidden multiple accept=".pdf,.csv,.xlsx,.xls,.doc,.docx,.txt,.md,.json,.rtf"><span class="cgpt-compose-note">${gptState.uploading ? '正在安全上传文件…' : 'AI 可能出错；重要结论需人工审核。'}</span></div><button class="cgpt-send" id="cgptSend" title="发送" ${gptState.uploading ? 'disabled' : ''}>↑</button></div>
           </div>
         </div>
       </main>
-    </div>${gptState.audit ? renderAudit() : ''}`;
+    </div>${gptState.scopeOpen ? renderScope() : ''}${gptState.audit ? renderAudit() : ''}`;
+  }
+
+  function renderDataBoundary() {
+    if (!can('internal_context')) return '<div class="cgpt-banner">当前账号可对话和联网搜索公开资料，但不能读取任何青风音乐内部数据。</div>';
+    if (gptState.session.role === 'ceo') return '<div class="cgpt-banner">CEO：可搜索公开资料，并读取全部已接入的青风音乐内部数据。</div>';
+    if (can('financial_data')) return '<div class="cgpt-banner">财务：可搜索公开资料，并读取歌曲、版税规则、分成比例、平台收入及金额；不能读取人事数据。</div>';
+    if (can('hr_data')) return '<div class="cgpt-banner">HR：可搜索公开资料，并读取招聘与人事数据；不能读取音乐财务、版税比例或金额。</div>';
+    if (can('legal_data')) return '<div class="cgpt-banner">法务：可搜索公开资料，并读取合同与法务数据；不能读取版税结算金额。</div>';
+    if (can('catalog_context')) return '<div class="cgpt-banner">A&R：可搜索公开资料，并读取歌曲库、艺人、录音版本及 Song Matching 数据；不能读取分成比例或金额。</div>';
+    return '';
   }
 
   function renderMessages(conversation) {
     if (!conversation.messages.length) {
+      if (!can('internal_context')) {
+        return `<div class="cgpt-empty"><div class="cgpt-logo">C</div><h2>我可以帮你搜索什么？</h2><p>你可以进行多轮对话和联网搜索公开资料。青风音乐内部歌曲、合同、版税比例及金额不会提供给当前账号。</p><div class="cgpt-prompts">
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索本周全球音乐行业的重要新闻，并列出来源和发布日期。">搜索音乐行业新闻</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索近期全球流媒体平台的公开规则变化，并说明可能影响。">查询流媒体规则变化</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="研究当前海外音乐市场的公开趋势和增长机会，并标注资料来源。">研究海外市场趋势</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索公开资料，整理一份音乐营销案例与可复用方法。">搜索音乐营销案例</button>
+        </div></div>`;
+      }
+      if (gptState.session.role === 'hr') {
+        return `<div class="cgpt-empty"><div class="cgpt-logo">C</div><h2>HR 工作助手</h2><p>可搜索公开资料，并在权限范围内使用招聘与人事数据。</p><div class="cgpt-prompts">
+          <button class="cgpt-prompt" data-cgpt-prompt="根据当前招聘数据总结候选人进展和待处理事项。">总结招聘进展</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="根据当前候选人资料整理面试准备清单。">准备面试清单</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索音乐行业近期招聘趋势，并标注资料来源。">搜索招聘趋势</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索公开资料，整理一份新人培训最佳实践。">研究新人培训</button>
+        </div></div>`;
+      }
+      if (gptState.session.role === 'legal') {
+        return `<div class="cgpt-empty"><div class="cgpt-logo">C</div><h2>法务工作助手</h2><p>可搜索公开资料，并在权限范围内使用合同与法务数据。</p><div class="cgpt-prompts">
+          <button class="cgpt-prompt" data-cgpt-prompt="根据当前合同资料列出即将到期和需要复核的事项。">检查合同待办</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="根据当前合同资料总结主要权利、期限和风险。">总结合同风险</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索近期音乐版权法规变化，并标注权威来源。">搜索法规变化</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索公开资料，整理音乐授权合同常见风险。">研究授权风险</button>
+        </div></div>`;
+      }
+      if (gptState.session.role === 'ar') {
+        return `<div class="cgpt-empty"><div class="cgpt-logo">C</div><h2>A&amp;R 工作助手</h2><p>可搜索公开资料，并在权限范围内使用歌曲库、艺人、ISRC/UPC 与匹配数据。</p><div class="cgpt-prompts">
+          <button class="cgpt-prompt" data-cgpt-prompt="总结当前歌曲库的数据质量，并列出需要优先处理的问题。">分析歌曲库数据质量</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="检查当前歌曲匹配结果，列出需要人工确认的录音版本。">检查 Song Matching</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索本周全球音乐趋势，并标注资料来源。">搜索全球音乐趋势</button>
+          <button class="cgpt-prompt" data-cgpt-prompt="搜索公开资料，分析近期热门歌曲的创作与传播特点。">研究热门歌曲</button>
+        </div></div>`;
+      }
       return `<div class="cgpt-empty"><div class="cgpt-logo">C</div><h2>我可以为青风音乐做什么？</h2><p>可进行多轮对话、联网搜索，也可以在权限允许时使用当前浏览器中的歌曲库、Royalty Matrix、平台导入、匹配和版税结果作为受控上下文。</p><div class="cgpt-prompts">
         <button class="cgpt-prompt" data-cgpt-prompt="总结当前歌曲库的数据质量，并列出需要优先处理的问题。">分析歌曲库数据质量</button>
         <button class="cgpt-prompt" data-cgpt-prompt="根据当前版税规则，找出可能过期、重叠或缺失的规则。">检查 Royalty Matrix</button>
@@ -215,7 +259,9 @@
   }
 
   function bindChatEvents() {
-    document.getElementById('cgptGateForm')?.addEventListener('submit', activateSession);
+    document.getElementById('cgptReturnLogin')?.addEventListener('click', () => {
+      if (typeof window.logout === 'function') window.logout();
+    });
     document.getElementById('cgptNewConversation')?.addEventListener('click', () => { createConversation(); renderPage(); });
     document.querySelectorAll('[data-cgpt-conversation]').forEach(button => button.addEventListener('click', () => { gptState.activeId = button.dataset.cgptConversation; renderPage(); }));
     document.querySelectorAll('[data-cgpt-prompt]').forEach(button => button.addEventListener('click', () => { const input = document.getElementById('cgptInput'); input.value = button.dataset.cgptPrompt; input.focus(); }));
@@ -230,30 +276,16 @@
     document.getElementById('cgptLogout')?.addEventListener('click', logoutSession);
     document.getElementById('cgptAuditButton')?.addEventListener('click', openAudit);
     document.getElementById('cgptAuditClose')?.addEventListener('click', () => { gptState.audit = null; renderPage(); });
+    document.getElementById('cgptScopeButton')?.addEventListener('click', () => { gptState.scopeOpen = true; renderPage(); });
+    document.getElementById('cgptScopeClose')?.addEventListener('click', () => { gptState.scopeOpen = false; renderPage(); });
     scrollMessages();
-  }
-
-  async function activateSession(event) {
-    event.preventDefault();
-    const code = document.getElementById('cgptAccessCode').value.trim();
-    const errorNode = document.getElementById('cgptGateError');
-    errorNode.textContent = '正在验证…';
-    try {
-      const response = await fetch('/api/gpt-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ accessCode: code }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || '验证失败。');
-      gptState.session = data.user;
-      ensureConversation();
-      renderPage();
-    } catch (error) {
-      errorNode.textContent = error.message;
-    }
   }
 
   async function logoutSession() {
     await fetch('/api/gpt-session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => null);
     gptState.session = null;
-    renderPage();
+    if (typeof window.logout === 'function') await window.logout();
+    else renderPage();
   }
 
   function relevantRecords(records, query, fields, limit) {
@@ -277,6 +309,10 @@
     const matches = parseStorage('cm_finance_matches_v140', []);
     const calculations = parseStorage('cm_finance_calculations_v140', []);
     const exceptions = parseStorage('cm_finance_exception_reviews_v140', []);
+    const hrRecords = parseStorage('cm_hr_records', []);
+    const recruitmentRecords = parseStorage('cm_recruitment_records', []);
+    const contracts = parseStorage('cm_legal_contracts', []);
+    const legalRecords = parseStorage('cm_legal_records', []);
     return {
       generatedAt: new Date().toISOString(),
       scope: 'Only records relevant to the current user question are included. Counts cover all browser records.',
@@ -288,14 +324,22 @@
         calculationCount: calculations.length,
         exceptionCount: exceptions.length
       },
-      recordings: relevantRecords(recordings, query, ['id', 'workId', 'workTitle', 'alternativeTitle', 'artist', 'versionName', 'isrc', 'iswc', 'upc'], 60),
+      ...(can('catalog_context') ? { recordings: relevantRecords(recordings, query, ['id', 'workId', 'workTitle', 'alternativeTitle', 'artist', 'versionName', 'isrc', 'iswc', 'upc'], 60) } : {}),
       ...(can('financial_data') ? {
         royaltyRules: relevantRecords(rules, query, ['id', 'recordingId', 'payee', 'role', 'royaltyType', 'contractNo', 'territory', 'platform'], 60),
         recentImports: imports.slice(-8),
         relevantMatches: relevantRecords(matches, query, ['title', 'artist', 'isrc', 'recordingId', 'reason', 'status'], 40),
         relevantCalculations: relevantRecords(calculations, query, ['recordingId', 'payee', 'currency', 'contractNo', 'status'], 40),
         relevantExceptions: relevantRecords(exceptions, query, ['type', 'risk', 'subject', 'description', 'status'], 40)
-      } : { financialDataRestricted: true })
+      } : { financialDataRestricted: true }),
+      ...(can('hr_data') ? {
+        hrRecords: relevantRecords(hrRecords, query, ['name', 'department', 'role', 'status', 'notes'], 60),
+        recruitmentRecords: relevantRecords(recruitmentRecords, query, ['candidate', 'position', 'status', 'notes'], 60)
+      } : {}),
+      ...(can('legal_data') ? {
+        contracts: relevantRecords(contracts, query, ['contractNo', 'title', 'counterparty', 'status', 'notes'], 60),
+        legalRecords: relevantRecords(legalRecords, query, ['title', 'type', 'status', 'notes'], 60)
+      } : {})
     };
   }
 
@@ -326,8 +370,8 @@
           conversationId: conversation.id,
           messages: conversation.messages.filter(message => !message.streaming).map(({ role, content: text, attachments }) => ({ role, content: text, attachments: attachments || [] })),
           webSearch: gptState.webSearch && can('web_search'),
-          includeContext: gptState.includeContext && can('catalog_context'),
-          businessContext: gptState.includeContext && can('catalog_context') ? buildBusinessContext(content) : null
+          includeContext: gptState.includeContext && can('internal_context'),
+          businessContext: gptState.includeContext && can('internal_context') ? buildBusinessContext(content) : null
         })
       });
       if (!response.ok) {
@@ -467,4 +511,36 @@
     return `<div class="cgpt-audit"><div class="cgpt-audit-card"><div class="cgpt-audit-head"><div><h3>Cheerful GPT 审计日志</h3><div class="cgpt-compose-note">存储：${escapeHtml(audit.storage || '检查中')}</div></div><button class="cgpt-action" id="cgptAuditClose">关闭</button></div>
       ${audit.loading ? '<div class="cgpt-loading">正在读取审计日志…</div>' : (audit.error ? `<div class="cgpt-banner">${escapeHtml(audit.error)}</div>` : `<table><thead><tr><th>时间</th><th>用户</th><th>角色</th><th>操作</th><th>对话</th></tr></thead><tbody>${rows || '<tr><td colspan="5">暂无可查询的持久化审计记录；操作仍会写入 Vercel Functions 日志。</td></tr>'}</tbody></table>`)}</div></div>`;
   }
+
+  function accessMode(fullPermission, readPermission, limitedPermission) {
+    if (fullPermission && can(fullPermission)) return ['完整', 'full'];
+    if (readPermission && can(readPermission)) return ['只读', 'read'];
+    if (limitedPermission && can(limitedPermission)) return ['部分', 'limited'];
+    return ['无权限', 'none'];
+  }
+
+  function renderScope() {
+    const rows = [
+      ['互联网公开资料', accessMode('web_search')],
+      ['歌曲库', accessMode('song_library_write', 'song_library_read')],
+      ['Royalty Matrix／分成比例', accessMode('royalty_rules_write', 'royalty_rules_read')],
+      ['平台版税导入', accessMode('platform_royalty_write', 'platform_royalty_read')],
+      ['AI Song Matching', accessMode('song_matching_write', 'song_matching_read')],
+      ['版税计算', accessMode('royalty_calculation')],
+      ['金额报表', accessMode('financial_reports')],
+      ['合同', accessMode('contracts_full', null, 'contracts_limited')],
+      ['招聘', accessMode('recruitment_write', 'recruitment_read')]
+    ];
+    const permissionRows = rows.map(([label, mode]) => `<div class="cgpt-scope-row"><span>${escapeHtml(label)}</span><b class="${mode[1]}">${mode[1] === 'full' ? '✓' : mode[1] === 'read' ? '◉' : mode[1] === 'limited' ? '◐' : '×'} ${mode[0]}</b></div>`).join('');
+    const boundary = renderDataBoundary();
+    return `<div class="cgpt-audit"><div class="cgpt-audit-card cgpt-scope-card"><div class="cgpt-audit-head"><div><h3>AI 工作台权限</h3><div class="cgpt-compose-note">${escapeHtml(gptState.session.name)} · ${escapeHtml(roleLabel(gptState.session.role))}。Cheerful AI 只会读取当前角色允许的数据。</div></div><button class="cgpt-action" id="cgptScopeClose">关闭</button></div><div class="cgpt-scope-list">${permissionRows}</div>${boundary}</div></div>`;
+  }
+
+  document.addEventListener('cheerful:session', event => {
+    gptState.session = event.detail || null;
+    if (document.getElementById('cheerfulGptRoot')) {
+      if (gptState.session) ensureConversation();
+      renderPage();
+    }
+  });
 })();

@@ -58,16 +58,18 @@ function safeContext(value) {
 }
 
 function restrictBusinessContext(value, user) {
-  if (!value || !user.permissions.includes('catalog_context')) return null;
+  if (!value || !user.permissions.includes('internal_context')) return null;
   const context = safeContext(value);
-  if (!context || user.permissions.includes('financial_data')) return context;
-  return {
+  if (!context) return null;
+  if (user.role === 'ceo') return context;
+  const filtered = {
     generatedAt: context.generatedAt,
-    scope: 'Financial fields removed by server role policy.',
-    summary: {
-      recordingCount: context.summary && context.summary.recordingCount || 0
-    },
-    recordings: Array.isArray(context.recordings) ? context.recordings.map(record => ({
+    scope: `Server-filtered internal context for role: ${user.role}.`,
+    summary: {}
+  };
+  if (user.permissions.includes('catalog_context')) {
+    filtered.summary.recordingCount = context.summary && context.summary.recordingCount || 0;
+    filtered.recordings = Array.isArray(context.recordings) ? context.recordings.map(record => ({
       id: record.id,
       workId: record.workId,
       workTitle: record.workTitle,
@@ -81,8 +83,29 @@ function restrictBusinessContext(value, user) {
       releaseDate: record.releaseDate,
       label: record.label,
       status: record.status
-    })) : []
-  };
+    })) : [];
+  }
+  if (user.permissions.includes('financial_data')) {
+    filtered.summary.royaltyRuleCount = context.summary && context.summary.royaltyRuleCount || 0;
+    filtered.summary.importBatchCount = context.summary && context.summary.importBatchCount || 0;
+    filtered.summary.matchedRowCount = context.summary && context.summary.matchedRowCount || 0;
+    filtered.summary.calculationCount = context.summary && context.summary.calculationCount || 0;
+    filtered.summary.exceptionCount = context.summary && context.summary.exceptionCount || 0;
+    filtered.royaltyRules = Array.isArray(context.royaltyRules) ? context.royaltyRules : [];
+    filtered.recentImports = Array.isArray(context.recentImports) ? context.recentImports : [];
+    filtered.relevantMatches = Array.isArray(context.relevantMatches) ? context.relevantMatches : [];
+    filtered.relevantCalculations = Array.isArray(context.relevantCalculations) ? context.relevantCalculations : [];
+    filtered.relevantExceptions = Array.isArray(context.relevantExceptions) ? context.relevantExceptions : [];
+  }
+  if (user.permissions.includes('hr_data')) {
+    filtered.hrRecords = Array.isArray(context.hrRecords) ? context.hrRecords : [];
+    filtered.recruitmentRecords = Array.isArray(context.recruitmentRecords) ? context.recruitmentRecords : [];
+  }
+  if (user.permissions.includes('legal_data')) {
+    filtered.contracts = Array.isArray(context.contracts) ? context.contracts : [];
+    filtered.legalRecords = Array.isArray(context.legalRecords) ? context.legalRecords : [];
+  }
+  return filtered;
 }
 
 module.exports = async function handler(req, res) {
@@ -118,11 +141,12 @@ module.exports = async function handler(req, res) {
   }
   const conversationId = String(body.conversationId || crypto.randomUUID()).slice(0, 100);
   const wantsWebSearch = Boolean(body.webSearch) && user.permissions.includes('web_search');
-  const wantsContext = Boolean(body.includeContext) && user.permissions.includes('catalog_context');
+  const wantsContext = Boolean(body.includeContext) && user.permissions.includes('internal_context');
   const businessContext = wantsContext ? restrictBusinessContext(body.businessContext, user) : null;
 
   const instructions = [
     '你是 Cheerful GPT，青风音乐内部 AI 助手。默认使用简体中文，回答清晰、准确、可执行。',
+    `当前登录人的角色是 ${user.role}。只能使用服务器允许传入的角色数据，不得推测、索取或绕过其无权访问的数据。`,
     '你可以辅助音乐业务、A&R、推广、版权、发行、财务、HR、法务与管理决策。',
     '内部业务数据只作为受控参考；若数据不完整、冲突或不足，必须明确说明，不能编造金额、合同或权利关系。',
     '涉及版税金额时，只解释已有数据与规则，不得替代确定性规则引擎，不得直接批准付款。',

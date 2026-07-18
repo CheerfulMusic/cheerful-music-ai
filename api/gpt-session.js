@@ -1,5 +1,6 @@
 const {
   authenticateAccessCode,
+  authenticateCredentials,
   clearSessionCookie,
   isAllowedOrigin,
   issueSession,
@@ -22,7 +23,7 @@ module.exports = async function handler(req, res) {
       const user = readSession(req);
       return res.end(JSON.stringify(user ? {
         authenticated: true,
-        user: { id: user.sub, name: user.name, role: user.role, permissions: permissionsFor(user.role) }
+        user: { id: user.sub, name: user.name, email: user.email || '', role: user.role, permissions: permissionsFor(user.role) }
       } : { authenticated: false }));
     } catch (error) {
       res.statusCode = 503;
@@ -40,12 +41,15 @@ module.exports = async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
 
-  const code = String((req.body || {}).accessCode || '').trim();
-  const user = authenticateAccessCode(code);
+  const body = req.body || {};
+  const code = String(body.accessCode || '').trim();
+  const email = String(body.email || '').trim().toLowerCase();
+  const password = String(body.password || '');
+  const user = email ? authenticateCredentials(email, password) : authenticateAccessCode(code);
   if (!user) {
     res.statusCode = 401;
     await writeAudit({ actorId: 'anonymous', actorName: 'Unknown', actorRole: 'none', action: 'session.denied' });
-    return res.end(JSON.stringify({ error: '访问码无效。' }));
+    return res.end(JSON.stringify({ error: email ? '邮箱或密码错误。' : '访问码无效。' }));
   }
 
   try {
@@ -57,6 +61,6 @@ module.exports = async function handler(req, res) {
   await writeAudit({ actorId: user.id, actorName: user.name, actorRole: user.role, action: 'session.created' });
   return res.end(JSON.stringify({
     authenticated: true,
-    user: { id: user.id, name: user.name, role: user.role, permissions: permissionsFor(user.role) }
+    user: { id: user.id, name: user.name, email: user.email || '', role: user.role, permissions: permissionsFor(user.role) }
   }));
 };

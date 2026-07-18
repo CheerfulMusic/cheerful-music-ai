@@ -39,25 +39,39 @@ async function main() {
     });
   });
 
-  await test('index only adds isolated Cheerful GPT assets', () => {
-    const stripped = current('index.html')
-      .replace('<link rel="stylesheet" href="css/cheerful-gpt.css" />\n', '')
-      .replace('<script src="js/cheerful-gpt.js"></script>\n', '');
-    assert.strictEqual(stripped, baseline('index.html'));
+  await test('Login Page markup remains byte-for-byte unchanged', () => {
+    const extract = html => {
+      const match = html.match(/<section id="loginView"[\s\S]*?<\/section>/);
+      assert(match, 'loginView section not found');
+      return match[0];
+    };
+    assert.strictEqual(extract(current('index.html')), extract(baseline('index.html')));
+  });
+
+  await test('browser credentials are removed and unified RBAC is loaded', () => {
+    const index = current('index.html');
+    assert(!index.includes('snow123456'));
+    assert(!index.includes('member123456'));
+    assert(index.includes('<script src="js/cheerful-rbac.js"></script>'));
+    assert(!current('js/cheerful-gpt.js').includes('cgptAccessCode'));
   });
 
   await test('no OpenAI API key value is present in browser assets', () => {
-    const browserCode = [current('index.html'), current('js/cheerful-gpt.js'), current('css/cheerful-gpt.css')].join('\n');
+    const browserCode = [current('index.html'), current('js/cheerful-rbac.js'), current('js/cheerful-gpt.js'), current('css/cheerful-gpt.css')].join('\n');
     assert(!/sk-[A-Za-z0-9_-]{20,}/.test(browserCode));
     assert(!browserCode.includes('process.env.OPENAI_API_KEY'));
   });
 
   process.env.CHEERFUL_GPT_SESSION_SECRET = 'test-session-secret-that-is-longer-than-thirty-two-characters';
   process.env.CHEERFUL_GPT_ACCESS_KEYS = JSON.stringify({
-    'admin-code': { id: 'admin', name: 'Admin', role: 'admin' },
-    'finance-code': { id: 'finance', name: 'Finance', role: 'finance' },
-    'ceo-code': { id: 'ceo', name: 'CEO', role: 'ceo' },
-    'member-code': { id: 'member', name: 'Member', role: 'member' }
+    'admin-code': { id: 'admin', email: 'admin@cheerfulmusic.com', name: 'Admin', role: 'admin' },
+    'finance-code': { id: 'finance', email: 'finance@cheerfulmusic.com', name: 'Finance', role: 'finance' },
+    'ceo-code': { id: 'ceo', email: 'snow@cheerfulmusic.com', name: 'Snow', role: 'ceo' },
+    'ar-code': { id: 'ar', email: 'ar@cheerfulmusic.com', name: 'A&R', role: 'ar' },
+    'hr-code': { id: 'hr', email: 'hr@cheerfulmusic.com', name: 'HR', role: 'hr' },
+    'legal-code': { id: 'legal', email: 'legal@cheerfulmusic.com', name: 'Legal', role: 'legal' },
+    'marketing-code': { id: 'marketing', email: 'marketing@cheerfulmusic.com', name: 'Marketing', role: 'marketing' },
+    'member-code': { id: 'member', email: 'member@cheerfulmusic.com', name: 'Member', role: 'member' }
   });
   process.env.OPENAI_API_KEY = 'test-only-server-key';
   process.env.OPENAI_MODEL = 'gpt-5.6-luna';
@@ -73,6 +87,30 @@ async function main() {
     assert(!auth.permissionsFor('admin').includes('financial_data'));
     assert(!auth.permissionsFor('member').includes('financial_data'));
     assert(auth.permissionsFor('admin').includes('audit_view'));
+    ['member', 'admin', 'viewer', 'marketing'].forEach(role => {
+      assert(auth.permissionsFor(role).includes('web_search'), `${role} should be allowed public web search`);
+      assert(!auth.permissionsFor(role).includes('internal_context'), `${role} must not access internal context`);
+      assert(!auth.permissionsFor(role).includes('file_upload'), `${role} must not upload files to AI`);
+    });
+    assert(auth.permissionsFor('ar').includes('catalog_context'));
+    assert(!auth.permissionsFor('ar').includes('financial_data'));
+    assert(auth.permissionsFor('hr').includes('hr_data'));
+    assert(!auth.permissionsFor('hr').includes('catalog_context'));
+    assert(auth.permissionsFor('legal').includes('legal_data'));
+    assert(!auth.permissionsFor('legal').includes('financial_data'));
+  });
+
+  await test('work email and password create the shared OS and GPT session', async () => {
+    const session = require('./api/gpt-session');
+    const req = { method: 'POST', headers: { origin: 'https://app.cheerfulmusic.com' }, body: { email: 'snow@cheerfulmusic.com', password: 'ceo-code' } };
+    const res = responseMock();
+    await session(req, res);
+    const payload = JSON.parse(res.chunks.join(''));
+    assert.strictEqual(payload.authenticated, true);
+    assert.strictEqual(payload.user.email, 'snow@cheerfulmusic.com');
+    assert.strictEqual(payload.user.role, 'ceo');
+    assert(res.headers['set-cookie'].includes('HttpOnly'));
+    assert(!res.chunks.join('').includes('ceo-code'));
   });
 
   await test('access code creates an HttpOnly secure session cookie', async () => {
@@ -117,7 +155,11 @@ async function main() {
           summary: { recordingCount: 6200, royaltyRuleCount: 777 },
           recordings: [{ id: 'CM-R-1', workTitle: '测试歌曲', artist: '测试艺人', isrc: 'TESTISRC1' }],
           royaltyRules: [{ id: 'RULE-1', payee: 'SECRET-PAYEE', percentage: 47.25 }],
-          relevantCalculations: [{ royaltyAmount: 987654.32 }]
+          relevantCalculations: [{ royaltyAmount: 987654.32 }],
+          hrRecords: [{ name: 'SECRET-HR-PERSON', department: 'HR', status: 'active' }],
+          recruitmentRecords: [{ candidate: 'SECRET-CANDIDATE', position: 'A&R Manager' }],
+          contracts: [{ contractNo: 'SECRET-CONTRACT', counterparty: 'Contract Party' }],
+          legalRecords: [{ title: 'SECRET-LEGAL-MATTER', status: 'review' }]
         }
       }
     };
@@ -128,14 +170,47 @@ async function main() {
     return { captured, output: res.chunks.join('') };
   }
 
-  await test('Member requests cannot send royalty rules, split rates, or amounts to OpenAI', async () => {
-    const result = await runChat('member', true);
+  await test('A&R receives music data but not finance, HR, or legal data', async () => {
+    const result = await runChat('ar', true);
     const body = JSON.stringify(result.captured.body);
     assert(body.includes('测试歌曲'));
     assert(!body.includes('SECRET-PAYEE'));
-    assert(!body.includes('47.25'));
     assert(!body.includes('987654.32'));
+    assert(!body.includes('SECRET-HR-PERSON'));
+    assert(!body.includes('SECRET-CONTRACT'));
     assert(result.captured.body.tools.some(tool => tool.type === 'web_search'));
+  });
+
+  await test('HR receives people data and no music, finance, or legal data', async () => {
+    const result = await runChat('hr', true);
+    const body = JSON.stringify(result.captured.body);
+    assert(body.includes('SECRET-HR-PERSON'));
+    assert(body.includes('SECRET-CANDIDATE'));
+    assert(!body.includes('测试歌曲'));
+    assert(!body.includes('SECRET-PAYEE'));
+    assert(!body.includes('SECRET-CONTRACT'));
+  });
+
+  await test('Legal receives contract data and no music, finance, or HR data', async () => {
+    const result = await runChat('legal', true);
+    const body = JSON.stringify(result.captured.body);
+    assert(body.includes('SECRET-CONTRACT'));
+    assert(body.includes('SECRET-LEGAL-MATTER'));
+    assert(!body.includes('测试歌曲'));
+    assert(!body.includes('SECRET-PAYEE'));
+    assert(!body.includes('SECRET-HR-PERSON'));
+  });
+
+  await test('Marketing and ordinary members can search public web but receive no internal data', async () => {
+    for (const role of ['marketing', 'member']) {
+      const result = await runChat(role, true);
+      const body = JSON.stringify(result.captured.body);
+      assert(!body.includes('测试歌曲'));
+      assert(!body.includes('SECRET-PAYEE'));
+      assert(!body.includes('SECRET-HR-PERSON'));
+      assert(!body.includes('SECRET-CONTRACT'));
+      assert(result.captured.body.tools.some(tool => tool.type === 'web_search'));
+    }
   });
 
   await test('Finance requests can use royalty rules and amounts', async () => {
@@ -150,7 +225,7 @@ async function main() {
 
   await test('file upload uses server Authorization and never returns the API key', async () => {
     const fileHandler = require('./api/gpt-file');
-    const token = auth.issueSession({ id: 'member', name: 'Member', role: 'member' });
+    const token = auth.issueSession({ id: 'finance', name: 'Finance', role: 'finance' });
     const originalFetch = global.fetch;
     let authorization;
     global.fetch = async (url, options) => {
