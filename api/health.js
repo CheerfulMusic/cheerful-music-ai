@@ -7,6 +7,15 @@ function json(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function safeFailureCode(reason) {
+  const message = String(reason && reason.message || reason || '');
+  if (/Supabase 401\b/.test(message)) return 'secret_key_rejected';
+  if (/Supabase 403\b/.test(message)) return 'secret_key_forbidden';
+  if (/Supabase 404\b/.test(message)) return 'rest_endpoint_or_schema_not_found';
+  if (/fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(message)) return 'project_url_unreachable';
+  return 'database_request_failed';
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false });
 
@@ -38,5 +47,9 @@ module.exports = async function handler(req, res) {
   result.tables.royaltyImports = checks[3].status === 'fulfilled';
   result.schemaReady = Object.values(result.tables).every(Boolean);
   result.ok = result.schemaReady;
+  if (!result.ok) {
+    const firstFailure = checks.find(check => check.status === 'rejected');
+    result.failureCode = safeFailureCode(firstFailure && firstFailure.reason);
+  }
   return json(res, result.ok ? 200 : 503, result);
 };
