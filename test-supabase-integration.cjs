@@ -64,6 +64,24 @@ async function main() {
     }
   });
 
+  await test('health endpoint reports only a safe failure category when the secret key is rejected', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => new Response('{"message":"Invalid API key"}', { status: 401 });
+    try {
+      const health = require('./api/health');
+      const req = { method: 'GET', headers: {} };
+      const res = responseMock();
+      await health(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(res.statusCode, 503);
+      assert.strictEqual(payload.failureCode, 'secret_key_rejected');
+      assert.ok(!res.chunks.join('').includes('Invalid API key'));
+      assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_SECRET_KEY));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('new Supabase publishable and secret keys are supported without browser exposure', async () => {
     const calls = [];
     const originalFetch = global.fetch;
