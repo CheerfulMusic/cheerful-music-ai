@@ -49,7 +49,13 @@ async function main() {
         ok: true,
         supabaseConfigured: true,
         authConfigured: true,
-        schemaReady: true
+        schemaReady: true,
+        tables: {
+          users: true,
+          songs: true,
+          royaltyRules: true,
+          royaltyImports: true
+        }
       });
       assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_URL));
       assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_SECRET_KEY));
