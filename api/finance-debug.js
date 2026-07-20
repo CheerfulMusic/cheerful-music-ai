@@ -272,8 +272,10 @@ async function generateFakeRoyaltyReport(user) {
 async function deleteTestData(user) {
   const deletions = [];
   for (const [table, filter] of [
-    ['royalty_rules', 'rule_code=like.DEV-*'],
+    // Delete imports first so their calculation runs, lines, import rows and
+    // exceptions cascade before rules and recordings referenced by those rows.
     ['royalty_imports', 'batch_no=like.DEV-*'],
+    ['royalty_rules', 'rule_code=like.DEV-*'],
     ['recordings', 'recording_id=like.DEV-*'],
     ['songs', 'work_id=like.DEV-*']
   ]) {
