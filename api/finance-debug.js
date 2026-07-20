@@ -225,8 +225,44 @@ async function generateFakeRoyaltyReport(user) {
   const batch = Array.isArray(imports.data) ? imports.data[0] : null;
   if (!batch || !batch.id) throw new Error('Fake royalty import was not returned');
   const rows = [
-    { import_id: batch.id, source_row_number: 1, raw_data: { title: 'Test Song', artist: 'Developer' }, song_id: test.song.id, recording_id: test.recording.id, match_status: 'matched', match_method: 'ISRC', confidence: 1, platform: 'Developer DSP', currency: 'USD', gross_amount: 10, net_amount: 9.5 },
-    { import_id: batch.id, source_row_number: 2, raw_data: { title: 'Unknown Song' }, match_status: 'review', match_method: null, confidence: 0, platform: 'Developer DSP', currency: 'USD', gross_amount: 6.25, net_amount: 6.25, error_reason: 'Developer review test' }
+    {
+      import_id: batch.id,
+      source_row_number: 1,
+      raw_data: { title: 'Test Song', artist: 'Developer', isrc: 'TEST-001' },
+      song_id: test.song.id,
+      recording_id: test.recording.id,
+      match_status: 'matched',
+      match_method: 'ISRC',
+      confidence: 1,
+      platform: 'Developer DSP',
+      territory: null,
+      usage_date: '2026-01-01',
+      currency: 'USD',
+      gross_amount: 10,
+      fees: 0.5,
+      tax_amount: 0,
+      net_amount: 9.5,
+      error_reason: null
+    },
+    {
+      import_id: batch.id,
+      source_row_number: 2,
+      raw_data: { title: 'Unknown Song', artist: 'Unknown Artist', isrc: '' },
+      song_id: null,
+      recording_id: null,
+      match_status: 'review',
+      match_method: null,
+      confidence: 0,
+      platform: 'Developer DSP',
+      territory: null,
+      usage_date: '2026-01-01',
+      currency: 'USD',
+      gross_amount: 6.25,
+      fees: 0,
+      tax_amount: 0,
+      net_amount: 6.25,
+      error_reason: 'Developer review test'
+    }
   ];
   await serviceRequest('royalty_import_rows', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(rows) });
   await audit(user, 'developer.fake_royalty_report.generated', { batchNo, rows: rows.length });
