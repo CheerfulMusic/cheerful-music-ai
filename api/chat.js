@@ -211,6 +211,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify(requestBody)
     });
   } catch (error) {
+    await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: 'chat.failed', conversationId, metadata: { stage: 'connection', model: requestBody.model, error: String(error.message || error).slice(0, 500) } });
     res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.end(JSON.stringify({ error: `无法连接 OpenAI：${error.message}` }));
@@ -218,6 +219,7 @@ module.exports = async function handler(req, res) {
 
   if (!upstream.ok || !upstream.body) {
     const detail = await upstream.text();
+    await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: 'chat.failed', conversationId, metadata: { stage: 'upstream', model: requestBody.model, status: upstream.status || 502, error: detail.slice(0, 500) } });
     res.statusCode = upstream.status || 502;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.end(JSON.stringify({ error: 'OpenAI 请求失败。', detail: detail.slice(0, 1200) }));
@@ -235,6 +237,8 @@ module.exports = async function handler(req, res) {
   let buffer = '';
   let answer = '';
   let sources = [];
+  let usage = null;
+  let streamFailure = null;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -252,14 +256,17 @@ module.exports = async function handler(req, res) {
           sendEvent(res, 'delta', { text: event.delta });
         } else if (event.type === 'response.completed') {
           sources = responseSources(event);
+          usage = event.response && event.response.usage || null;
         } else if (event.type === 'error' || event.type === 'response.failed') {
-          sendEvent(res, 'error', { error: event.error && event.error.message || '模型生成失败。' });
+          streamFailure = event.error && event.error.message || '模型生成失败。';
+          sendEvent(res, 'error', { error: streamFailure });
         }
       }
     }
     if (sources.length) sendEvent(res, 'sources', { sources });
     sendEvent(res, 'done', { conversationId });
   } catch (error) {
+    streamFailure = error.message;
     sendEvent(res, 'error', { error: error.message });
   } finally {
     res.end();
@@ -274,8 +281,8 @@ module.exports = async function handler(req, res) {
     actorId: user.sub,
     actorName: user.name,
     actorRole: user.role,
-    action: 'chat.completed',
+    action: streamFailure ? 'chat.failed' : 'chat.completed',
     conversationId,
-    metadata: { responseCharacters: answer.length, sourceCount: sources.length }
+    metadata: { model: requestBody.model, responseCharacters: answer.length, sourceCount: sources.length, usage, ...(streamFailure ? { stage: 'stream', error: String(streamFailure).slice(0, 500) } : {}) }
   });
 };

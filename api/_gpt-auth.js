@@ -4,7 +4,7 @@ const COOKIE_NAME = 'cm_gpt_session';
 const SESSION_SECONDS = 60 * 60 * 12;
 
 const ROLE_PERMISSIONS = Object.freeze({
-  ceo: ['chat', 'web_search', 'internal_context', 'catalog_context', 'financial_data', 'hr_data', 'legal_data', 'file_upload', 'history', 'audit_view', 'user_admin', 'song_library_read', 'song_library_write', 'royalty_rules_read', 'royalty_rules_write', 'platform_royalty_read', 'platform_royalty_write', 'song_matching_read', 'song_matching_write', 'royalty_calculation', 'financial_reports', 'contracts_full', 'recruitment_read', 'recruitment_write'],
+  ceo: ['chat', 'web_search', 'internal_context', 'catalog_context', 'financial_data', 'hr_data', 'legal_data', 'file_upload', 'history', 'audit_view', 'developer_mode', 'user_admin', 'song_library_read', 'song_library_write', 'royalty_rules_read', 'royalty_rules_write', 'platform_royalty_read', 'platform_royalty_write', 'song_matching_read', 'song_matching_write', 'royalty_calculation', 'financial_reports', 'contracts_full', 'recruitment_read', 'recruitment_write'],
   finance: ['chat', 'web_search', 'internal_context', 'catalog_context', 'financial_data', 'file_upload', 'history', 'song_library_read', 'song_library_write', 'royalty_rules_read', 'royalty_rules_write', 'platform_royalty_read', 'platform_royalty_write', 'song_matching_read', 'song_matching_write', 'royalty_calculation', 'financial_reports', 'contracts_limited'],
   ar: ['chat', 'web_search', 'internal_context', 'catalog_context', 'music_data', 'file_upload', 'history', 'song_library_read', 'song_library_write', 'song_matching_read', 'song_matching_write'],
   hr: ['chat', 'web_search', 'internal_context', 'hr_data', 'file_upload', 'history', 'recruitment_read', 'recruitment_write'],
@@ -12,7 +12,7 @@ const ROLE_PERMISSIONS = Object.freeze({
   distribution: ['chat', 'web_search', 'history'],
   marketing: ['chat', 'web_search', 'history'],
   legal: ['chat', 'web_search', 'internal_context', 'legal_data', 'file_upload', 'history', 'contracts_full'],
-  admin: ['chat', 'web_search', 'history', 'audit_view'],
+  admin: ['chat', 'web_search', 'history', 'audit_view', 'developer_mode'],
   member: ['chat', 'web_search', 'history'],
   viewer: ['chat', 'web_search', 'history']
 });

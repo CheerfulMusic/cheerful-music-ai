@@ -182,6 +182,140 @@ async function main() {
     }
   });
 
+  await test('Song Library completes create, read, update, delete, and refresh persistence through Supabase', async () => {
+    const state = { songs: [], recordings: [] };
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      const method = options.method || 'GET';
+      if (url.includes('/gpt_audit_logs') && method === 'POST') return new Response('', { status: 201 });
+      if (url.includes('/songs?on_conflict=work_id') && method === 'POST') {
+        const inputs = JSON.parse(options.body); const rows = Array.isArray(inputs) ? inputs : [inputs];
+        const output = rows.map(row => {
+          const existing = state.songs.find(item => item.work_id === row.work_id);
+          if (existing) return Object.assign(existing, row, { updated_at: '2026-07-20T00:00:00Z' });
+          const created = Object.assign({ id: '55555555-5555-4555-8555-' + String(state.songs.length + 1).padStart(12, '0'), created_at: '2026-07-20T00:00:00Z' }, row);
+          state.songs.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/recordings?on_conflict=recording_id') && method === 'POST') {
+        const inputs = JSON.parse(options.body); const rows = Array.isArray(inputs) ? inputs : [inputs];
+        const output = rows.map(row => {
+          const existing = state.recordings.find(item => item.recording_id === row.recording_id);
+          if (existing) return Object.assign(existing, row, { updated_at: '2026-07-20T00:00:00Z' });
+          const created = Object.assign({ id: '66666666-6666-4666-8666-' + String(state.recordings.length + 1).padStart(12, '0'), created_at: '2026-07-20T00:00:00Z' }, row);
+          state.recordings.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/recordings?select=id,recording_id,isrc')) {
+        const nested = state.recordings.map(recording => Object.assign({}, recording, { songs: state.songs.find(song => song.id === recording.song_id) || null }));
+        return new Response(JSON.stringify(nested), { status: 200 });
+      }
+      if (url.includes('/recordings?recording_id=in.') && method === 'GET') {
+        return new Response(JSON.stringify(state.recordings.map(item => ({ song_id: item.song_id }))), { status: 200 });
+      }
+      if (url.includes('/recordings?recording_id=in.') && method === 'DELETE') {
+        const deleted = state.recordings.splice(0, state.recordings.length);
+        return new Response(JSON.stringify(deleted), { status: 200 });
+      }
+      if (url.includes('/recordings?song_id=eq.') && method === 'GET') return new Response('[]', { status: 200 });
+      if (url.includes('/songs?id=eq.') && method === 'DELETE') {
+        state.songs.splice(0, state.songs.length); return new Response(null, { status: 204 });
+      }
+      throw new Error(`Unexpected Supabase URL: ${url} (${method})`);
+    };
+    try {
+      const handler = require('./api/os-data');
+      const token = auth.issueSession({ id: 'finance-user', name: 'Finance', role: 'finance' });
+      const headers = { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` };
+      async function call(method, body) {
+        const req = { method, query: { resource: 'catalog' }, headers, body: body || {} };
+        const res = responseMock(); await handler(req, res); return { status: res.statusCode, body: JSON.parse(res.chunks.join('') || '{}') };
+      }
+      let result = await call('POST', { records: [{ id: 'CM-R-E2E', workId: 'CM-W-E2E', workTitle: 'Persistent Song', artist: 'Artist One', versionName: 'Original', isrc: 'E2E-001' }] });
+      assert.strictEqual(result.body.ok, true);
+      result = await call('GET');
+      assert.strictEqual(result.body.data.length, 1);
+      assert.strictEqual(result.body.data[0].songs.title, 'Persistent Song');
+      result = await call('POST', { records: [{ id: 'CM-R-E2E', workId: 'CM-W-E2E', workTitle: 'Persistent Song Updated', artist: 'Artist One', versionName: 'Remix', isrc: 'E2E-001' }] });
+      assert.strictEqual(result.body.ok, true);
+      result = await call('GET');
+      assert.strictEqual(result.body.data[0].songs.title, 'Persistent Song Updated');
+      assert.strictEqual(result.body.data[0].version_name, 'Remix');
+      result = await call('DELETE', { codes: ['CM-R-E2E'] });
+      assert.strictEqual(result.body.result.deleted, 1);
+      result = await call('GET');
+      assert.strictEqual(result.body.data.length, 0);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test('Developer Console API is denied to Finance and available to CEO', async () => {
+    const developer = require('./api/finance-debug');
+    const financeToken = auth.issueSession({ id: 'finance-user', name: 'Finance', role: 'finance' });
+    const deniedReq = {
+      method: 'GET', query: { action: 'status' },
+      headers: { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(financeToken)}` }
+    };
+    const deniedRes = responseMock();
+    await developer(deniedReq, deniedRes);
+    assert.strictEqual(deniedRes.statusCode, 403);
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (url.includes('/gpt_audit_logs') && options.method === 'POST') return new Response('', { status: 201 });
+      return new Response('[]', { status: 200, headers: { 'Content-Range': '0-0/0' } });
+    };
+    try {
+      const ceoToken = auth.issueSession({ id: 'ceo-user', name: 'CEO', role: 'ceo' });
+      const req = {
+        method: 'GET', query: { action: 'tables' },
+        headers: { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(ceoToken)}` }
+      };
+      const res = responseMock();
+      await developer(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(payload.tables.length, 13);
+      assert(payload.tables.some(table => table.name === 'songs'));
+      assert(payload.tables.some(table => table.name === 'royalty_import_rows'));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  await test('Developer CRUD tester inserts through the protected server API and reports execution time', async () => {
+    const developer = require('./api/finance-debug');
+    const token = auth.issueSession({ id: 'admin-user', name: 'Admin', role: 'admin' });
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (url.includes('/songs') && options.method === 'POST') {
+        return new Response(JSON.stringify([{ id: '44444444-4444-4444-8444-444444444444', work_id: 'DEV-W-CRUD', title: 'CRUD Song' }]), { status: 201 });
+      }
+      if (url.includes('/gpt_audit_logs')) return new Response('', { status: 201 });
+      throw new Error(`Unexpected Supabase URL: ${url}`);
+    };
+    try {
+      const req = {
+        method: 'POST', query: {},
+        headers: { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` },
+        body: { action: 'crud', operation: 'insert', table: 'songs', record: { work_id: 'DEV-W-CRUD', title: 'CRUD Song' } }
+      };
+      const res = responseMock();
+      await developer(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(payload.success, true);
+      assert.strictEqual(payload.operation, 'insert');
+      assert.strictEqual(payload.table, 'songs');
+      assert(Number.isFinite(payload.executionMs));
+      assert.strictEqual(payload.result.data[0].work_id, 'DEV-W-CRUD');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('database migration enables RLS for every sensitive department table', () => {
     const sql = fs.readFileSync(path.join(__dirname, 'supabase/cheerful-os.sql'), 'utf8');
     ['users', 'songs', 'recordings', 'royalty_rules', 'royalty_imports', 'royalty_import_rows', 'hr_records', 'recruitment_records', 'contracts', 'legal_records'].forEach(table => {

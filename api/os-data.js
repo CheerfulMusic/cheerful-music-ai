@@ -40,8 +40,12 @@ function normalizeStatus(value) {
 }
 
 function fallbackWorkId(record) {
-  const identity = [record.workTitle, record.artist, record.isrc, record.id].map(value => text(value, 300).toLowerCase()).join('|');
-  return `LEGACY-W-${crypto.createHash('sha1').update(identity).digest('hex').slice(0, 16).toUpperCase()}`;
+  const title = text(record.workTitle || record.songTitle || record.title, 500).toLowerCase();
+  const identity = title
+    ? [record.iswc, title, record.copyrightOwner || record.label]
+    : [record.iswc, record.id, record.isrc, record.artist];
+  const normalizedIdentity = identity.map(value => text(value, 500).toLowerCase()).join('|');
+  return `LEGACY-W-${crypto.createHash('sha1').update(normalizedIdentity).digest('hex').slice(0, 16).toUpperCase()}`;
 }
 
 function requireConfigured(res) {
@@ -198,6 +202,53 @@ async function syncImports(records, user) {
   return { received: records.length, saved: saved.length };
 }
 
+async function syncMatchingQueue(records) {
+  const input = records.slice(0, MAX_BATCH);
+  const batchCodes = [...new Set(input.map(record => text(record.batchId || record.batch_no, 120)).filter(Boolean))];
+  const recordingCodes = [...new Set(input.map(record => text(record.recordingId || record.recording_id, 120)).filter(Boolean))];
+  const [importResult, recordingResult] = await Promise.all([
+    batchCodes.length ? serviceRequest(`royalty_imports?batch_no=in.${inFilter(batchCodes)}&select=id,batch_no,platform`) : { data: [] },
+    recordingCodes.length ? serviceRequest(`recordings?recording_id=in.${inFilter(recordingCodes)}&select=id,recording_id,song_id`) : { data: [] }
+  ]);
+  const imports = new Map((Array.isArray(importResult.data) ? importResult.data : []).map(row => [row.batch_no, row]));
+  const recordings = new Map((Array.isArray(recordingResult.data) ? recordingResult.data : []).map(row => [row.recording_id, row]));
+  const failed = [];
+  const rows = [];
+  input.forEach((record, index) => {
+    const batchCode = text(record.batchId || record.batch_no, 120);
+    const batch = imports.get(batchCode);
+    if (!batch) {
+      failed.push({ index, reason: '导入批次不存在', batchCode });
+      return;
+    }
+    const recordingCode = text(record.recordingId || record.recording_id, 120);
+    const recording = recordings.get(recordingCode);
+    const confidenceRaw = number(record.confidence, 0);
+    const confidence = Math.max(0, Math.min(1, confidenceRaw > 1 ? confidenceRaw / 100 : confidenceRaw));
+    rows.push({
+      import_id: batch.id,
+      source_row_number: Math.max(1, number(record.rowIndex, index) + 1),
+      raw_data: {
+        title: text(record.title, 500), artist: text(record.artist, 500), isrc: text(record.isrc, 100),
+        country: text(record.country, 100), period: text(record.period, 100), quantity: number(record.quantity, 0)
+      },
+      song_id: recording && recording.song_id || null,
+      recording_id: recording && recording.id || null,
+      match_status: recording ? (confidence >= 0.75 ? 'matched' : 'review') : 'unmatched',
+      match_method: text(record.reason, 500) || null,
+      confidence,
+      platform: text(record.platform, 200) || batch.platform || null,
+      territory: text(record.country || record.territory, 100) || null,
+      currency: text(record.currency, 30) || null,
+      gross_amount: number(record.revenue),
+      net_amount: number(record.revenue),
+      error_reason: recording ? null : '未匹配到录音版本'
+    });
+  });
+  const saved = await upsert('royalty_import_rows', 'import_id,source_row_number', rows);
+  return { received: input.length, saved: saved.length, failed };
+}
+
 async function readResource(resource) {
   if (resource === 'catalog') {
     const result = await serviceRequest('recordings?select=id,recording_id,isrc,version_name,version_type,artist_name,upc,release_date,label,recording_owner,status,notes,songs(id,work_id,title,alternative_titles,iswc,language,label,copyright_owner,status,notes)&order=updated_at.desc&limit=10000');
@@ -209,6 +260,10 @@ async function readResource(resource) {
   }
   if (resource === 'royalty_imports') {
     const result = await serviceRequest('royalty_imports?select=id,batch_no,platform,period_start,period_end,original_filename,currency,status,total_rows,imported_rows,updated_rows,skipped_rows,failed_rows,review_rows,total_amount,metadata,created_at&order=created_at.desc&limit=1000');
+    return result.data || [];
+  }
+  if (resource === 'matching_queue') {
+    const result = await serviceRequest('royalty_import_rows?select=id,source_row_number,raw_data,match_status,match_method,confidence,platform,territory,currency,gross_amount,net_amount,error_reason,created_at,royalty_imports(batch_no),recordings(recording_id)&order=created_at.desc&limit=10000');
     return result.data || [];
   }
   if (resource === 'users') {
@@ -227,10 +282,23 @@ async function deleteResource(resource, codes) {
     royalty_imports: ['royalty_imports', 'batch_no']
   }[resource];
   if (!configuration) throw Object.assign(new Error('Delete is not supported for this resource'), { statusCode: 405 });
+  let parentSongIds = [];
+  if (resource === 'catalog') {
+    const parents = await serviceRequest(`recordings?recording_id=in.${inFilter(safeCodes)}&select=song_id`);
+    parentSongIds = [...new Set((Array.isArray(parents.data) ? parents.data : []).map(row => row.song_id).filter(Boolean))];
+  }
   const result = await serviceRequest(`${configuration[0]}?${configuration[1]}=in.${inFilter(safeCodes)}`, {
     method: 'DELETE',
     headers: { Prefer: 'return=representation' }
   });
+  if (resource === 'catalog') {
+    for (const songId of parentSongIds) {
+      const remaining = await serviceRequest(`recordings?song_id=eq.${encodeURIComponent(songId)}&select=id&limit=1`);
+      if (!Array.isArray(remaining.data) || !remaining.data.length) {
+        await serviceRequest(`songs?id=eq.${encodeURIComponent(songId)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      }
+    }
+  }
   return { deleted: Array.isArray(result.data) ? result.data.length : 0 };
 }
 
@@ -238,6 +306,7 @@ const RESOURCE_PERMISSIONS = {
   catalog: ['song_library_read', 'song_library_write'],
   royalty_rules: ['royalty_rules_read', 'royalty_rules_write'],
   royalty_imports: ['platform_royalty_read', 'platform_royalty_write'],
+  matching_queue: ['song_matching_read', 'song_matching_write'],
   users: ['user_admin', 'user_admin']
 };
 
@@ -259,7 +328,9 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      return json(res, 200, { resource, data: await readResource(resource) });
+      const data = await readResource(resource);
+      await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: `data.${resource}.queried`, metadata: { count: Array.isArray(data) ? data.length : 0 } });
+      return json(res, 200, { resource, data });
     }
     if (req.method === 'POST') {
       const records = Array.isArray(req.body && req.body.records) ? req.body.records : [];
@@ -268,6 +339,7 @@ module.exports = async function handler(req, res) {
       if (resource === 'catalog') result = await syncCatalog(records, user);
       else if (resource === 'royalty_rules') result = await syncRoyaltyRules(records, user);
       else if (resource === 'royalty_imports') result = await syncImports(records, user);
+      else if (resource === 'matching_queue') result = await syncMatchingQueue(records, user);
       else return json(res, 405, { error: '用户角色请通过专用更新操作管理。' });
       await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: `data.${resource}.synced`, metadata: result });
       return json(res, 200, { ok: true, resource, result });
@@ -300,6 +372,7 @@ module.exports = async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed' });
   } catch (error) {
     console.error(JSON.stringify({ type: 'cheerful_os_data_error', resource, message: error.message }));
+    await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: `data.${resource}.failed`, metadata: { method: req.method, error: error.message.slice(0, 500) } });
     return json(res, error.statusCode || 500, { error: 'Supabase 数据操作失败。', detail: error.message.slice(0, 500) });
   }
 };

@@ -33,10 +33,20 @@ function baseline(file) {
 }
 
 async function main() {
-  await test('existing Finance modules are byte-for-byte unchanged', () => {
-    ['js/finance.js', 'js/finance-workflow.js', 'js/song-library-bulk-import.js', 'js/royalty-matrix-bulk-import.js'].forEach(file => {
-      assert.strictEqual(current(file), baseline(file), `${file} changed unexpectedly`);
-    });
+  await test('existing Finance UI modules remain present while persistence moves to Supabase', () => {
+    const finance = current('js/finance.js');
+    const workflow = current('js/finance-workflow.js');
+    const songBulk = current('js/song-library-bulk-import.js');
+    const royaltyBulk = current('js/royalty-matrix-bulk-import.js');
+    assert(finance.includes('平台版税导入'));
+    assert(finance.includes('window.CheerfulSupabase.saveImports'));
+    assert(workflow.includes('AI自动匹配'));
+    assert(workflow.includes('AI版税计算'));
+    assert(workflow.includes('异常审核'));
+    assert(workflow.includes('window.CheerfulSupabase.saveMatches'));
+    assert(songBulk.includes('window.CheerfulSupabase.saveCatalog'));
+    assert(royaltyBulk.includes('window.CheerfulSupabase.saveRules'));
+    assert(!finance.includes("localStorage.setItem(KEY"));
   });
 
   await test('Login Page markup remains byte-for-byte unchanged', () => {
@@ -62,11 +72,24 @@ async function main() {
     assert(!index.includes('snow123456'));
     assert(!index.includes('member123456'));
     assert(index.includes('<script src="js/cheerful-rbac.js"></script>'));
+    assert(index.includes('<script src="js/developer-console.js"></script>'));
     assert(!current('js/cheerful-gpt.js').includes('cgptAccessCode'));
   });
 
+  await test('Developer Console is independent from AI Finance and limited to CEO/Admin navigation', () => {
+    const index = current('index.html');
+    const rbac = current('js/cheerful-rbac.js');
+    const developer = current('js/developer-console.js');
+    assert(!index.includes("financeTab==='developer'"));
+    assert(!index.includes('Developer Mode</button>'));
+    assert(rbac.includes("ceo: ['dashboard', 'finance', 'copyright', 'release', 'ar', 'marketing', 'hr', 'legal', 'ceo', 'developer']"));
+    assert(rbac.includes("admin: ['dashboard', 'developer']"));
+    assert(developer.includes("role === 'ceo' || role === 'admin'"));
+    ['Database Explorer', 'Database CRUD Tester', 'API Monitor', 'Supabase Monitor', 'OpenAI Monitor', 'Error Center', 'Activity Log', 'Development Tools', 'AI Finance Debug', 'Test Center'].forEach(label => assert(developer.includes(label), `${label} missing`));
+  });
+
   await test('no OpenAI API key value is present in browser assets', () => {
-    const browserCode = [current('index.html'), current('js/cheerful-rbac.js'), current('js/cheerful-gpt.js'), current('js/supabase-sync.js'), current('css/cheerful-gpt.css')].join('\n');
+    const browserCode = [current('index.html'), current('js/cheerful-rbac.js'), current('js/cheerful-gpt.js'), current('js/supabase-sync.js'), current('js/developer-console.js'), current('css/cheerful-gpt.css')].join('\n');
     assert(!/sk-[A-Za-z0-9_-]{20,}/.test(browserCode));
     assert(!browserCode.includes('process.env.OPENAI_API_KEY'));
   });
@@ -96,6 +119,8 @@ async function main() {
     assert(!auth.permissionsFor('admin').includes('financial_data'));
     assert(!auth.permissionsFor('member').includes('financial_data'));
     assert(auth.permissionsFor('admin').includes('audit_view'));
+    assert(auth.permissionsFor('admin').includes('developer_mode'));
+    assert(auth.permissionsFor('ceo').includes('developer_mode'));
     ['member', 'admin', 'viewer', 'marketing'].forEach(role => {
       assert(auth.permissionsFor(role).includes('web_search'), `${role} should be allowed public web search`);
       assert(!auth.permissionsFor(role).includes('internal_context'), `${role} must not access internal context`);

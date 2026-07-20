@@ -16,7 +16,7 @@
   };
 
   const ROLE_MODULES = Object.freeze({
-    ceo: ['dashboard', 'finance', 'copyright', 'release', 'ar', 'marketing', 'hr', 'legal', 'ceo'],
+    ceo: ['dashboard', 'finance', 'copyright', 'release', 'ar', 'marketing', 'hr', 'legal', 'ceo', 'developer'],
     finance: ['dashboard', 'finance'],
     ar: ['dashboard', 'ar'],
     hr: ['dashboard', 'hr'],
@@ -24,7 +24,7 @@
     distribution: ['dashboard', 'release'],
     marketing: ['dashboard', 'marketing'],
     legal: ['dashboard', 'legal'],
-    admin: ['dashboard'],
+    admin: ['dashboard', 'developer'],
     member: ['dashboard'],
     viewer: ['dashboard']
   });
@@ -61,6 +61,14 @@
   const originalBuildNav = window.buildNav;
   window.buildNav = function () {
     originalBuildNav();
+    if (canOpenModule('developer')) {
+      const button = document.createElement('button');
+      button.dataset.id = 'developer';
+      button.className = typeof current !== 'undefined' && current === 'developer' ? 'active' : '';
+      button.innerHTML = '<span class="ico">🔧</span>Developer Console';
+      button.onclick = () => window.openSection('developer');
+      document.getElementById('nav').appendChild(button);
+    }
     document.querySelectorAll('#nav [data-id]').forEach(button => {
       if (!canOpenModule(button.dataset.id)) button.remove();
     });

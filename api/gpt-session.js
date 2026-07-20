@@ -33,7 +33,10 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
+    let user = null;
+    try { user = readSession(req); } catch (_) {}
     clearSessionCookie(res);
+    if (user) await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: 'session.deleted' });
     return res.end(JSON.stringify({ ok: true }));
   }
 
