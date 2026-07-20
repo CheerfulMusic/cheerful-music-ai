@@ -2,17 +2,14 @@ console.log("Cheerful Finance Workflow Loaded");
 (function(){
 'use strict';
 
-const CALC_KEY='cm_finance_calculations_v140';
-const REVIEW_KEY='cm_finance_exception_reviews_v140';
 let activeBatchId='';
 let exceptionRisk='all';
 let exceptionStatus='open';
 let workflowMatches=[];
-
-function safeJSON(key,fallback){
- try{return JSON.parse(localStorage.getItem(key)||'null')||fallback}catch(_){return fallback}
-}
-function saveJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
+let workflowCalculations=[];
+let workflowExceptions=[];
+let matchIndexSource=null;
+let matchIndexes={isrc:new Map(),title:new Map(),artist:new Map(),prefix:new Map()};
 function esc(value){return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function normalize(value){return String(value??'').toLowerCase().normalize('NFKC').replace(/[^a-z0-9\u3400-\u9fff]+/g,'')}
 function normalizeISRC(value){return String(value??'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
@@ -23,8 +20,8 @@ function numberValue(value){
 function money(value,currency){return `${esc(currency||'—')} ${Number(value||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}
 function getImports(){return window.CheerfulFinanceImports?window.CheerfulFinanceImports.all():[]}
 function getMatches(){return workflowMatches.slice()}
-function getCalculations(){return safeJSON(CALC_KEY,[])}
-function getReviews(){return safeJSON(REVIEW_KEY,{})}
+function getCalculations(){return workflowCalculations.slice()}
+function getExceptions(){return workflowExceptions.slice()}
 function currentImports(){
  const imports=getImports();
  if(!imports.some(item=>item.id===activeBatchId))activeBatchId=imports[0]?.id||'';
@@ -61,14 +58,31 @@ function confidenceLabel(score,manual){
  if(score>=58)return['需要审核','warn'];
  return['未匹配','danger']
 }
+function addIndex(map,key,recording){if(!key)return;if(!map.has(key))map.set(key,[]);map.get(key).push(recording)}
+function ensureMatchIndexes(){
+ if(matchIndexSource===financeRecordings)return;
+ matchIndexSource=financeRecordings;
+ matchIndexes={isrc:new Map(),title:new Map(),artist:new Map(),prefix:new Map()};
+ financeRecordings.forEach(recording=>{
+  const isrc=normalizeISRC(recording.isrc),title=normalize(recording.workTitle),artist=normalize(recording.artist);
+  if(isrc)matchIndexes.isrc.set(isrc,recording);
+  addIndex(matchIndexes.title,title,recording);addIndex(matchIndexes.artist,artist,recording);addIndex(matchIndexes.prefix,title.slice(0,2),recording)
+ })
+}
 function bestRecordingMatch(title,artist,isrc){
+ ensureMatchIndexes();
  const normalizedISRC=normalizeISRC(isrc);
  if(normalizedISRC){
-  const exact=financeRecordings.find(recording=>normalizeISRC(recording.isrc)===normalizedISRC);
+  const exact=matchIndexes.isrc.get(normalizedISRC);
   if(exact)return{recordingId:exact.id,confidence:100,reason:'ISRC 精确匹配'}
  }
  const normalizedTitle=normalize(title),normalizedArtist=normalize(artist);
- const candidates=financeRecordings.map(recording=>{
+ const exactTitle=matchIndexes.title.get(normalizedTitle)||[];
+ const sameArtist=matchIndexes.artist.get(normalizedArtist)||[];
+ const samePrefix=matchIndexes.prefix.get(normalizedTitle.slice(0,2))||[];
+ const pool=[...new Map([...exactTitle,...sameArtist,...samePrefix].map(recording=>[recording.id,recording])).values()];
+ if(!pool.length)return{recordingId:'',confidence:0,reason:'未找到可靠的歌曲版本'};
+ const candidates=pool.map(recording=>{
   const work=normalize(recording.workTitle),recordingArtist=normalize(recording.artist),version=normalize(recording.versionName),type=normalize(recording.versionType);
   const titleSimilarity=dice(normalizedTitle,work);
   const artistSimilarity=normalizedArtist?dice(normalizedArtist,recordingArtist):0;
@@ -135,15 +149,16 @@ function matchingRow(match){
 }
 window.runAIRoyaltyMatching=async function(){
  const batch=currentBatch();if(!batch){alert('请先导入平台版税报表。');setFinanceTab('imports');return}
- const retained=getMatches().filter(item=>item.batchId!==batch.id);
- const matches=(batch.rows||[]).map((row,rowIndex)=>{
-  const title=getField(batch,row,'title'),artist=getField(batch,row,'artist'),isrc=getField(batch,row,'isrc');
+ const sourceRows=getMatches().filter(item=>item.batchId===batch.id);
+ if(!sourceRows.length){alert('该导入批次没有已保存的收入明细。请重新上传平台报表。');return}
+ const matches=sourceRows.map((row,rowIndex)=>{
+  const title=row.title||'',artist=row.artist||'',isrc=row.isrc||'';
   const suggestion=bestRecordingMatch(title,artist,isrc);
-  return{id:`${batch.id}-${rowIndex}`,batchId:batch.id,rowIndex,title,artist,isrc,country:getField(batch,row,'country'),period:getField(batch,row,'period')||batch.period,revenue:numberValue(getField(batch,row,'revenue')),currency:getField(batch,row,'currency')||batch.currency,quantity:numberValue(getField(batch,row,'quantity')),manual:false,...suggestion}
+  return{...row,id:row.id||`${batch.id}-${row.rowIndex??rowIndex}`,batchId:batch.id,rowIndex:row.rowIndex??rowIndex,title,artist,isrc,country:row.country||'',period:row.period||batch.period,revenue:numberValue(row.revenue),currency:row.currency||batch.currency,quantity:numberValue(row.quantity),manual:false,...suggestion}
  });
- const next=[...retained,...matches];workflowMatches=next;
+ workflowMatches=[...getMatches().filter(item=>item.batchId!==batch.id),...matches];
  try{await window.CheerfulSupabase.saveMatches(matches);await window.CheerfulSupabase.refreshMatches();openSection('finance');showToastMessage(`AI 已完成并保存 ${matches.length} 行匹配`)}
- catch(error){workflowMatches=retained;alert(`匹配结果保存失败：${error.message}`)}
+ catch(error){await window.CheerfulSupabase.refreshMatches().catch(()=>{});alert(`匹配结果保存失败：${error.message}`)}
 };
 window.overrideRoyaltyMatch=async function(id,recordingId){
  const matches=getMatches(),match=matches.find(item=>item.id===id);if(!match)return;
@@ -159,12 +174,12 @@ function renderCalculation(){
  const currencies=[...new Set(results.map(item=>item.currency||'—'))];
  const payables=currencies.map(currency=>`${currency} ${results.filter(item=>(item.currency||'—')===currency).reduce((sum,item)=>sum+item.royaltyAmount,0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`).join(' · ')||'—';
  const payees=new Set(results.map(item=>item.payee)).size;
- const pending=results.filter(item=>item.status!=='已计算').length;
+ const pending=results.filter(item=>item.status!=='calculated').length;
  return `${workflowSteps('calculation')}${workflowHeader('AI版税计算','按收入发生期间选择有效合同规则，生成可追溯的逐笔版税计算结果。','<button class="primary" onclick="runRoyaltyCalculation()">开始版税计算</button>')}
  ${!matches.length?emptyWorkflow('请先完成 AI 自动匹配','当前报表还没有匹配结果，无法确定应采用哪首录音和哪份合同。'):(results.length?`<div class="fw-metrics"><div class="fw-metric"><span>计算明细</span><b>${results.length}</b></div><div class="fw-metric"><span>涉及权利人</span><b>${payees}</b></div><div class="fw-metric"><span>应付版税</span><b style="font-size:14px">${esc(payables)}</b></div><div class="fw-metric"><span>等待审核</span><b class="fw-score ${pending?'medium':'high'}">${pending}</b></div></div>
  <div class="fw-info">金额计算由固定规则引擎执行：平台收入 × 合同有效期内的分成比例。涉及成本回收的规则会自动进入异常审核，等待 Recoupment 数据接入后确认。</div>
  ${renderPayeeSummary(results)}
- <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>歌曲版本</th><th>权利人</th><th>平台收入</th><th>分成比例</th><th>计算基数</th><th>应付金额</th><th>合同</th><th>状态</th></tr></thead><tbody>${results.map(result=>`<tr><td>${esc(financeRecordingLabel(result.recordingId))}</td><td>${esc(result.payee)}</td><td>${money(result.revenue,result.currency)}</td><td>${result.percentage}%</td><td>${esc(result.basis)}</td><td><b>${money(result.royaltyAmount,result.currency)}</b></td><td>${esc(result.contractNo)}</td><td><span class="finance-chip ${result.status==='已计算'?'ok':'warn'}">${esc(result.status)}</span></td></tr>`).join('')}</tbody></table></div>
+ <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>歌曲版本</th><th>权利人</th><th>平台收入</th><th>分成比例</th><th>计算基数</th><th>应付金额</th><th>合同</th><th>状态</th></tr></thead><tbody>${results.map(result=>`<tr><td>${esc(financeRecordingLabel(result.recordingId))}</td><td>${esc(result.payee)}</td><td>${money(result.revenue,result.currency)}</td><td>${result.percentage}%</td><td>${esc(result.basis)}</td><td><b>${money(result.royaltyAmount,result.currency)}</b></td><td>${esc(result.contractNo)}</td><td><span class="finance-chip ${result.status==='calculated'?'ok':'warn'}">${result.status==='calculated'?'已计算':'待审核'}</span></td></tr>`).join('')}</tbody></table></div>
  <div class="finance-actions"><button class="primary" onclick="setFinanceTab('exceptions')">下一步：异常审核 →</button></div>`:emptyWorkflow('尚未生成版税计算结果','点击“开始版税计算”，系统将按录音版本、合同有效期和分成比例进行计算。'))}`
 }
 function renderPayeeSummary(results){
@@ -176,36 +191,16 @@ window.runRoyaltyCalculation=async function(){
  const batch=currentBatch();if(!batch){alert('请先导入平台版税报表。');return}
  let matches=getMatches().filter(item=>item.batchId===batch.id);
  if(!matches.length){await runAIRoyaltyMatching();matches=getMatches().filter(item=>item.batchId===batch.id)}
- const retained=getCalculations().filter(item=>item.batchId!==batch.id),results=[];
- matches.filter(match=>match.recordingId&&match.confidence>=58).forEach(match=>{
-  const date=periodDate(match.period||batch.period),rules=activeRulesFor(match.recordingId,date);
-  rules.forEach(rule=>results.push({id:`${match.id}-${rule.id}`,batchId:batch.id,matchId:match.id,recordingId:match.recordingId,payee:rule.payee,percentage:Number(rule.percentage),basis:rule.basis,contractNo:rule.contractNo,revenue:match.revenue,currency:match.currency||batch.currency,period:match.period||batch.period,royaltyAmount:Number((match.revenue*Number(rule.percentage)/100).toFixed(2)),status:String(rule.basis).includes('Recouped')||String(rule.basis).includes('回收')?'待成本回收审核':'已计算'})
-  )
- });
- saveJSON(CALC_KEY,[...retained,...results]);openSection('finance');showToastMessage(`规则引擎已生成 ${results.length} 笔计算明细`)
+ try{
+  showToastMessage('正在由服务器规则引擎计算并写入 Supabase…');
+  const response=await window.CheerfulSupabase.runCalculation(batch.id);
+  await Promise.all([window.CheerfulSupabase.refreshCalculations(),window.CheerfulSupabase.refreshExceptions()]);
+  openSection('finance');showToastMessage(`规则引擎已保存 ${response.result?.lines||0} 笔计算明细和 ${response.result?.exceptions||0} 项异常`)
+ }catch(error){alert(`版税计算失败：${error.message}`)}
 };
 
-function exceptionId(parts){return parts.map(value=>normalize(value)||'none').join('-').slice(0,180)}
 function deriveExceptions(batch){
- if(!batch)return[];
- const matches=getMatches().filter(item=>item.batchId===batch.id),results=getCalculations().filter(item=>item.batchId===batch.id),reviews=getReviews(),exceptions=[];
- const add=(type,risk,subject,description,suggestion,key)=>{const id=exceptionId([batch.id,type,key]);exceptions.push({id,batchId:batch.id,type,risk,subject,description,suggestion,resolved:Boolean(reviews[id])})};
- matches.forEach(match=>{
-  if(!match.recordingId)add('无法匹配歌曲','高风险',match.title||`第 ${match.rowIndex+1} 行`,'平台收入尚未对应到内部录音版本。','检查 ISRC、艺人和版本后进行人工匹配',match.id);
-  else if(match.confidence<75)add('低置信度匹配','中风险',match.title,`当前匹配置信度为 ${match.confidence}%。`,'财务确认建议录音版本或选择其他版本',match.id);
-  if(match.revenue<0)add('负数版税','中风险',match.title,`该行收入为 ${money(match.revenue,match.currency)}。`,'确认是否为退款、冲销或平台调整',match.id);
-  if(!String(match.currency||'').trim()||match.currency==='未识别')add('币种缺失','中风险',match.title,'报表未能识别该行币种。','确认平台结算币种后再计算',match.id);
-  if(match.recordingId){
-   const date=periodDate(match.period||batch.period),allRules=financeRules.filter(rule=>rule.recordingId===match.recordingId),active=activeRulesFor(match.recordingId,date);
-   if(!active.length)add(allRules.length?'合同已过期':'缺少分成规则','高风险',financeRecordingLabel(match.recordingId),allRules.length?'收入期间内没有有效合同规则。':'录音版本尚未建立分成规则。','前往“艺人与分成规则”补充有效规则',match.id);
-   const total=active.reduce((sum,rule)=>sum+Number(rule.percentage||0),0);
-   if(total>100)add('分成比例超过100%','高风险',financeRecordingLabel(match.recordingId),`收入期间内有效规则合计 ${total}%。`,'检查重叠合同和重复权利人规则',`${match.id}-${date}`);
-   active.filter(rule=>String(rule.basis).includes('Recouped')||String(rule.basis).includes('回收')).forEach(rule=>add('成本回收待确认','中风险',rule.payee,`${rule.contractNo} 采用“${rule.basis}”，当前尚未连接成本回收台账。`,'核对未回收余额后确认应付金额',`${match.id}-${rule.id}`))
-  }
- });
- const seen=new Map();matches.forEach(match=>{const fingerprint=[normalizeISRC(match.isrc),normalize(match.country),match.revenue,normalize(match.period)].join('|');if(seen.has(fingerprint)&&fingerprint.replace(/\|/g,''))add('疑似重复收入','高风险',match.title,'相同 ISRC、地区、金额和期间出现多次。','核对平台原始报表，避免重复计算',`${seen.get(fingerprint)}-${match.id}`);else seen.set(fingerprint,match.id)});
- if(results.some(result=>result.status!=='已计算')&&!exceptions.some(item=>item.type==='成本回收待确认'))add('计算结果待审核','中风险','版税计算','部分计算明细仍处于待审核状态。','检查计算基数和合同条款','calculation-review');
- return exceptions
+ return batch?getExceptions().filter(item=>item.batchId===batch.id):[]
 }
 function renderExceptions(){
  const imports=currentImports(),batch=currentBatch();
@@ -216,16 +211,20 @@ function renderExceptions(){
  <div class="fw-metrics"><div class="fw-metric"><span>全部异常</span><b>${all.length}</b></div><div class="fw-metric"><span>高风险待处理</span><b class="fw-score low">${high}</b></div><div class="fw-metric"><span>中风险待处理</span><b class="fw-score medium">${medium}</b></div><div class="fw-metric"><span>已解决</span><b class="fw-score high">${resolved}</b></div></div>
  <div class="finance-toolbar"><div class="finance-toolbar-left"><select class="finance-select" onchange="setRoyaltyExceptionRisk(this.value)"><option value="all" ${exceptionRisk==='all'?'selected':''}>全部风险</option><option value="高风险" ${exceptionRisk==='高风险'?'selected':''}>高风险</option><option value="中风险" ${exceptionRisk==='中风险'?'selected':''}>中风险</option></select><select class="finance-select" onchange="setRoyaltyExceptionStatus(this.value)"><option value="open" ${exceptionStatus==='open'?'selected':''}>待处理</option><option value="resolved" ${exceptionStatus==='resolved'?'selected':''}>已解决</option><option value="all" ${exceptionStatus==='all'?'selected':''}>全部状态</option></select></div><span class="finance-chip">${filtered.length} 项</span></div>
  ${filtered.length?`<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>风险</th><th>异常类型</th><th>歌曲 / 权利人</th><th>异常说明</th><th>系统建议</th><th>状态</th><th>操作</th></tr></thead><tbody>${filtered.map(item=>`<tr><td><b class="${item.risk==='高风险'?'fw-risk-high':'fw-risk-medium'}">${esc(item.risk)}</b></td><td>${esc(item.type)}</td><td>${esc(item.subject)}</td><td>${esc(item.description)}</td><td>${esc(item.suggestion)}</td><td><span class="finance-chip ${item.resolved?'ok':'warn'}">${item.resolved?'已解决':'待处理'}</span></td><td><button class="finance-link" onclick="toggleRoyaltyException('${esc(item.id)}',${item.resolved?'false':'true'})">${item.resolved?'重新打开':'标记已解决'}</button></td></tr>`).join('')}</tbody></table></div>`:emptyWorkflow(all.length?'当前筛选条件下没有异常':'当前批次未发现异常','可以调整风险和状态筛选，或返回前一步重新计算。')}
- <div class="finance-note">异常状态当前保存在浏览器本机。接入 Supabase 后，将记录处理人、处理时间、审核意见和完整操作日志。</div>`
+ <div class="finance-note">异常及处理状态已保存到 Supabase，并记录处理人、处理时间和审计日志。</div>`
 }
-window.refreshRoyaltyExceptions=function(){openSection('finance');showToastMessage('异常检查已刷新')};
+window.refreshRoyaltyExceptions=async function(){try{await window.CheerfulSupabase.refreshExceptions();openSection('finance');showToastMessage('已从 Supabase 刷新异常')}catch(error){alert(`刷新失败：${error.message}`)}};
 window.setRoyaltyExceptionRisk=function(value){exceptionRisk=value;openSection('finance')};
 window.setRoyaltyExceptionStatus=function(value){exceptionStatus=value;openSection('finance')};
-window.toggleRoyaltyException=function(id,resolved){const reviews=getReviews();if(resolved)reviews[id]={resolved:true,updatedAt:new Date().toISOString()};else delete reviews[id];saveJSON(REVIEW_KEY,reviews);openSection('finance');showToastMessage(resolved?'异常已标记为解决':'异常已重新打开')};
+window.toggleRoyaltyException=async function(id,resolved){try{await window.CheerfulSupabase.resolveException(id,resolved?'resolved':'reopened','财务在异常审核页面更新状态');await window.CheerfulSupabase.refreshExceptions();openSection('finance');showToastMessage(resolved?'异常已标记为解决':'异常已重新打开')}catch(error){alert(`异常状态保存失败：${error.message}`)}};
 
 injectStyles();
 window.CheerfulFinanceWorkflow={
  replaceMatches:function(records){workflowMatches=Array.isArray(records)?records:[]},
- matches:function(){return workflowMatches.slice()}
+ replaceCalculations:function(records){workflowCalculations=Array.isArray(records)?records:[]},
+ replaceExceptions:function(records){workflowExceptions=Array.isArray(records)?records:[]},
+ matches:function(){return workflowMatches.slice()},
+ calculations:function(){return workflowCalculations.slice()},
+ exceptions:function(){return workflowExceptions.slice()}
 };
 })();

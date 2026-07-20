@@ -112,6 +112,7 @@
         id: `${record.royalty_imports && record.royalty_imports.batch_no || 'batch'}-${Math.max(0, Number(record.source_row_number || 1) - 1)}`,
         batchId: record.royalty_imports && record.royalty_imports.batch_no || '',
         rowIndex: Math.max(0, Number(record.source_row_number || 1) - 1),
+        rawData: raw,
         title: raw.title || '', artist: raw.artist || '', isrc: raw.isrc || '', country: raw.country || '',
         period: raw.period || '', quantity: Number(raw.quantity || 0),
         revenue: Number(record.net_amount == null ? record.gross_amount || 0 : record.net_amount),
@@ -122,6 +123,60 @@
         manual: String(record.match_method || '').includes('人工')
       };
     }).filter(record => record.batchId);
+  }
+
+  function remoteCalculations(records) {
+    const mapped = records.map(record => ({
+      id: record.id,
+      runId: record.royalty_calculation_runs && record.royalty_calculation_runs.id || '',
+      runNo: record.royalty_calculation_runs && record.royalty_calculation_runs.run_no || '',
+      runStatus: record.royalty_calculation_runs && record.royalty_calculation_runs.status || '',
+      batchId: record.royalty_calculation_runs && record.royalty_calculation_runs.royalty_imports && record.royalty_calculation_runs.royalty_imports.batch_no || '',
+      rowIndex: Math.max(0, Number(record.royalty_import_rows && record.royalty_import_rows.source_row_number || 1) - 1),
+      sourceData: record.royalty_import_rows && record.royalty_import_rows.raw_data || {},
+      recordingId: record.recordings && record.recordings.recording_id || '',
+      payee: record.payee_name || '',
+      royaltyType: record.royalty_type || '',
+      percentage: Number(record.share_percentage || 0),
+      basis: record.calculation_basis || '',
+      contractNo: record.royalty_rules && record.royalty_rules.contract_no || '',
+      ruleCode: record.royalty_rules && record.royalty_rules.rule_code || '',
+      revenue: Number(record.source_amount || 0),
+      eligibleAmount: Number(record.eligible_amount || 0),
+      royaltyAmount: Number(record.royalty_amount || 0),
+      currency: record.currency || '',
+      status: record.status || 'review',
+      trace: record.calculation_trace || {},
+      createdAt: record.created_at || ''
+    })).filter(record => record.id && record.batchId && record.runStatus !== 'superseded');
+    const latestRunByBatch = new Map();
+    mapped.forEach(record => { if (!latestRunByBatch.has(record.batchId)) latestRunByBatch.set(record.batchId, record.runId); });
+    return mapped.filter(record => latestRunByBatch.get(record.batchId) === record.runId);
+  }
+
+  function remoteExceptions(records) {
+    const riskLabels = { high: '高风险', medium: '中风险', low: '低风险' };
+    const mapped = records.map(record => ({
+      id: record.id,
+      key: record.exception_key,
+      batchId: record.royalty_imports && record.royalty_imports.batch_no || '',
+      runNo: record.royalty_calculation_runs && record.royalty_calculation_runs.run_no || '',
+      type: record.exception_type || '',
+      risk: riskLabels[record.risk_level] || record.risk_level || '中风险',
+      subject: record.subject || '',
+      description: record.description || '',
+      suggestion: record.suggestion || '',
+      status: record.status || 'open',
+      resolved: ['resolved', 'dismissed'].includes(record.status),
+      resolutionNotes: record.resolution_notes || '',
+      resolvedAt: record.resolved_at || '',
+      metadata: record.metadata || {},
+      createdAt: record.created_at || '',
+      updatedAt: record.updated_at || ''
+    })).filter(record => record.id && record.batchId);
+    const latestRunByBatch = new Map();
+    mapped.forEach(record => { if (record.runNo && !latestRunByBatch.has(record.batchId)) latestRunByBatch.set(record.batchId, record.runNo); });
+    return mapped.filter(record => !record.runNo || latestRunByBatch.get(record.batchId) === record.runNo);
   }
 
   function rerenderFinance() {
@@ -164,6 +219,24 @@
     return records;
   }
 
+  async function refreshCalculations() {
+    if (!can('royalty_calculation')) return [];
+    const result = await request('calculations');
+    const records = remoteCalculations(result.data || []);
+    if (window.CheerfulFinanceWorkflow) window.CheerfulFinanceWorkflow.replaceCalculations(records);
+    rerenderFinance();
+    return records;
+  }
+
+  async function refreshExceptions() {
+    if (!can('royalty_calculation')) return [];
+    const result = await request('exceptions');
+    const records = remoteExceptions(result.data || []);
+    if (window.CheerfulFinanceWorkflow) window.CheerfulFinanceWorkflow.replaceExceptions(records);
+    rerenderFinance();
+    return records;
+  }
+
   async function hydrate() {
     if (!activeUser) return;
     if (hydrationPromise) return hydrationPromise;
@@ -177,6 +250,7 @@
       if (can('royalty_rules_read')) tasks.push(refreshRules()); else financeRules = [];
       if (can('platform_royalty_read')) tasks.push(refreshImports());
       if (can('song_matching_read')) tasks.push(refreshMatches());
+      if (can('royalty_calculation')) tasks.push(refreshCalculations(), refreshExceptions());
       await Promise.all(tasks);
       financeDataLoading = false;
       ['cm_finance_recordings', 'cm_finance_rules', 'cm_finance_imports_v131', 'cm_finance_preview_v131', 'cm_finance_matches_v140', 'cm_finance_calculations_v140', 'cm_finance_exception_reviews_v140'].forEach(key => localStorage.removeItem(key));
@@ -211,10 +285,15 @@
     refreshRules,
     refreshImports,
     refreshMatches,
+    refreshCalculations,
+    refreshExceptions,
     saveCatalog: records => sendBatches('catalog', records),
     saveRules: records => sendBatches('royalty_rules', records),
     saveImports: records => sendBatches('royalty_imports', records),
+    saveImportRows: records => sendBatches('import_rows', records),
     saveMatches: records => sendBatches('matching_queue', records),
+    runCalculation: batchId => request('calculations', { method: 'POST', body: JSON.stringify({ resource: 'calculations', batchId }) }),
+    resolveException: (id, status, notes) => request('exceptions', { method: 'PATCH', body: JSON.stringify({ resource: 'exceptions', id, status, notes: notes || '' }) }),
     deleteCatalog: codes => deleteCodes('catalog', codes),
     deleteRules: codes => deleteCodes('royalty_rules', codes),
     deleteImports: codes => deleteCodes('royalty_imports', codes),

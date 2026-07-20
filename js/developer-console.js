@@ -223,8 +223,8 @@
   }
 
   function renderFinanceDebug() {
-    return '<div class="dev-toolbar"><div><h2>AI Finance Debug</h2><p class="dev-muted">直接打开真实 Supabase 记录；Matching / Calculation Queue 使用当前 royalty_import_rows 数据。</p></div></div><div class="dev-grid">' +
-      [['Songs', 'songs'], ['Royalty Rules', 'royalty_rules'], ['Royalty Imports', 'royalty_imports'], ['Matching Queue', 'royalty_import_rows'], ['Calculation Queue', 'royalty_import_rows']].map(function (item) {
+    return '<div class="dev-toolbar"><div><h2>AI Finance Debug</h2><p class="dev-muted">直接打开真实 Supabase 记录；匹配、计算和异常均使用独立持久化数据表。</p></div></div><div class="dev-grid">' +
+      [['Songs', 'songs'], ['Royalty Rules', 'royalty_rules'], ['Royalty Imports', 'royalty_imports'], ['Import / Matching Rows', 'royalty_import_rows'], ['Calculation Runs', 'royalty_calculation_runs'], ['Calculation Lines', 'royalty_calculation_lines'], ['Finance Exceptions', 'finance_exceptions']].map(function (item) {
         return '<div class="dev-card"><h3>' + esc(item[0]) + '</h3><p>Supabase: public.' + esc(item[1]) + '</p><button class="dev-button" onclick="devOpenFinanceTable(\'' + esc(item[1]) + '\')">Open Records</button></div>';
       }).join('') + '</div>' + (tableView ? '<div class="dev-card" style="margin-top:16px"><h3>' + esc(tableView.table) + '</h3>' + dataTable(tableView) + '</div>' : '');
   }

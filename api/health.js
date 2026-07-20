@@ -25,11 +25,16 @@ module.exports = async function handler(req, res) {
     supabaseConfigured: config.databaseConfigured,
     authConfigured: config.authConfigured,
     schemaReady: false,
+    financeWorkflowReady: false,
     tables: {
       users: false,
       songs: false,
       royaltyRules: false,
-      royaltyImports: false
+      royaltyImports: false,
+      royaltyImportRows: false,
+      royaltyCalculationRuns: false,
+      royaltyCalculationLines: false,
+      financeExceptions: false
     }
   };
 
@@ -39,14 +44,23 @@ module.exports = async function handler(req, res) {
     serviceRequest('users?select=id&limit=1'),
     serviceRequest('songs?select=id&limit=1'),
     serviceRequest('royalty_rules?select=id&limit=1'),
-    serviceRequest('royalty_imports?select=id&limit=1')
+    serviceRequest('royalty_imports?select=id&limit=1'),
+    serviceRequest('royalty_import_rows?select=id&limit=1'),
+    serviceRequest('royalty_calculation_runs?select=id&limit=1'),
+    serviceRequest('royalty_calculation_lines?select=id&limit=1'),
+    serviceRequest('finance_exceptions?select=id&limit=1')
   ]);
   result.tables.users = checks[0].status === 'fulfilled';
   result.tables.songs = checks[1].status === 'fulfilled';
   result.tables.royaltyRules = checks[2].status === 'fulfilled';
   result.tables.royaltyImports = checks[3].status === 'fulfilled';
-  result.schemaReady = Object.values(result.tables).every(Boolean);
-  result.ok = result.schemaReady;
+  result.tables.royaltyImportRows = checks[4].status === 'fulfilled';
+  result.tables.royaltyCalculationRuns = checks[5].status === 'fulfilled';
+  result.tables.royaltyCalculationLines = checks[6].status === 'fulfilled';
+  result.tables.financeExceptions = checks[7].status === 'fulfilled';
+  result.schemaReady = ['users', 'songs', 'royaltyRules', 'royaltyImports', 'royaltyImportRows'].every(key => result.tables[key]);
+  result.financeWorkflowReady = ['royaltyCalculationRuns', 'royaltyCalculationLines', 'financeExceptions'].every(key => result.tables[key]);
+  result.ok = result.schemaReady && result.financeWorkflowReady;
   if (!result.ok) {
     const firstFailure = checks.find(check => check.status === 'rejected');
     result.failureCode = safeFailureCode(firstFailure && firstFailure.reason);
