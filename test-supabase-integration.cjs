@@ -481,6 +481,36 @@ async function main() {
     }
   });
 
+  await test('Developer test cleanup deletes imports before referenced royalty rules', async () => {
+    const developer = require('./api/finance-debug');
+    const token = auth.issueSession({ id: 'admin-user', name: 'Admin', role: 'admin' });
+    const originalFetch = global.fetch;
+    const deleteOrder = [];
+    global.fetch = async (url, options = {}) => {
+      if (url.includes('/gpt_audit_logs') && options.method === 'POST') return new Response('', { status: 201 });
+      if (options.method === 'DELETE') {
+        const match = String(url).match(/\/rest\/v1\/([^?]+)/);
+        deleteOrder.push(match && match[1]);
+        return new Response('[]', { status: 200 });
+      }
+      throw new Error(`Unexpected Supabase URL: ${url}`);
+    };
+    try {
+      const req = {
+        method: 'POST', query: {},
+        headers: { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` },
+        body: { action: 'delete-test-data' }
+      };
+      const res = responseMock();
+      await developer(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(payload.ok, true);
+      assert.deepStrictEqual(deleteOrder, ['royalty_imports', 'royalty_rules', 'recordings', 'songs']);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('database migration enables RLS for every sensitive department table', () => {
     const sql = fs.readFileSync(path.join(__dirname, 'supabase/cheerful-os.sql'), 'utf8');
     const financeSql = fs.readFileSync(path.join(__dirname, 'supabase/finance-workflow-v2.sql'), 'utf8');
