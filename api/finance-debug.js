@@ -271,11 +271,22 @@ async function generateFakeRoyaltyReport(user) {
 
 async function deleteTestData(user) {
   const deletions = [];
+  const devSongsResult = await serviceRequest('songs?work_id=like.DEV-*&select=id');
+  const devSongIds = (Array.isArray(devSongsResult.data) ? devSongsResult.data : []).map(item => item.id).filter(Boolean);
+  const linkedFilters = devSongIds.length
+    ? [
+        ['royalty_rules', `song_id=in.(${devSongIds.join(',')})`],
+        ['recordings', `song_id=in.(${devSongIds.join(',')})`]
+      ]
+    : [];
   for (const [table, filter] of [
     // Delete imports first so their calculation runs, lines, import rows and
     // exceptions cascade before rules and recordings referenced by those rows.
     ['royalty_imports', 'batch_no=like.DEV-*'],
     ['royalty_rules', 'rule_code=like.DEV-*'],
+    // UI-created test recordings receive the normal CM-R identifier, so clean
+    // them by their DEV work relationship as well as by a DEV recording code.
+    ...linkedFilters,
     ['recordings', 'recording_id=like.DEV-*'],
     ['songs', 'work_id=like.DEV-*']
   ]) {

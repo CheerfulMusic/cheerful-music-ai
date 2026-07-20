@@ -488,6 +488,9 @@ async function main() {
     const deleteOrder = [];
     global.fetch = async (url, options = {}) => {
       if (url.includes('/gpt_audit_logs') && options.method === 'POST') return new Response('', { status: 201 });
+      if (url.includes('/songs?work_id=like.DEV-*') && (!options.method || options.method === 'GET')) {
+        return new Response(JSON.stringify([{ id: '44444444-4444-4444-8444-444444444444' }]), { status: 200 });
+      }
       if (options.method === 'DELETE') {
         const match = String(url).match(/\/rest\/v1\/([^?]+)/);
         deleteOrder.push(match && match[1]);
@@ -505,7 +508,7 @@ async function main() {
       await developer(req, res);
       const payload = JSON.parse(res.chunks.join(''));
       assert.strictEqual(payload.ok, true);
-      assert.deepStrictEqual(deleteOrder, ['royalty_imports', 'royalty_rules', 'recordings', 'songs']);
+      assert.deepStrictEqual(deleteOrder, ['royalty_imports', 'royalty_rules', 'royalty_rules', 'recordings', 'recordings', 'songs']);
     } finally {
       global.fetch = originalFetch;
     }
