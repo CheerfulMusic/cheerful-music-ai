@@ -2,13 +2,12 @@ console.log("Cheerful Finance Workflow Loaded");
 (function(){
 'use strict';
 
-const IMPORT_KEY='cm_finance_imports_v131';
-const MATCH_KEY='cm_finance_matches_v140';
 const CALC_KEY='cm_finance_calculations_v140';
 const REVIEW_KEY='cm_finance_exception_reviews_v140';
 let activeBatchId='';
 let exceptionRisk='all';
 let exceptionStatus='open';
+let workflowMatches=[];
 
 function safeJSON(key,fallback){
  try{return JSON.parse(localStorage.getItem(key)||'null')||fallback}catch(_){return fallback}
@@ -22,8 +21,8 @@ function numberValue(value){
  return Number.isFinite(number)?number:0
 }
 function money(value,currency){return `${esc(currency||'—')} ${Number(value||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}
-function getImports(){return safeJSON(IMPORT_KEY,[])}
-function getMatches(){return safeJSON(MATCH_KEY,[])}
+function getImports(){return window.CheerfulFinanceImports?window.CheerfulFinanceImports.all():[]}
+function getMatches(){return workflowMatches.slice()}
 function getCalculations(){return safeJSON(CALC_KEY,[])}
 function getReviews(){return safeJSON(REVIEW_KEY,{})}
 function currentImports(){
@@ -134,7 +133,7 @@ function matchingRow(match){
  const options=financeRecordings.map(recording=>`<option value="${esc(recording.id)}" ${recording.id===match.recordingId?'selected':''}>${esc(recordingLabel(recording))}</option>`).join('');
  return `<tr><td>${match.rowIndex+1}</td><td>${esc(match.title||'—')}</td><td>${esc(match.artist||'—')}</td><td>${esc(match.isrc||'—')}</td><td><select class="fw-select" onchange="overrideRoyaltyMatch('${esc(match.id)}',this.value)"><option value="">未匹配</option>${options}</select></td><td><span class="fw-score ${scoreClass}">${match.confidence}%</span></td><td>${esc(match.reason)}</td><td><span class="finance-chip ${status[1]}">${status[0]}</span></td></tr>`
 }
-window.runAIRoyaltyMatching=function(){
+window.runAIRoyaltyMatching=async function(){
  const batch=currentBatch();if(!batch){alert('请先导入平台版税报表。');setFinanceTab('imports');return}
  const retained=getMatches().filter(item=>item.batchId!==batch.id);
  const matches=(batch.rows||[]).map((row,rowIndex)=>{
@@ -142,12 +141,15 @@ window.runAIRoyaltyMatching=function(){
   const suggestion=bestRecordingMatch(title,artist,isrc);
   return{id:`${batch.id}-${rowIndex}`,batchId:batch.id,rowIndex,title,artist,isrc,country:getField(batch,row,'country'),period:getField(batch,row,'period')||batch.period,revenue:numberValue(getField(batch,row,'revenue')),currency:getField(batch,row,'currency')||batch.currency,quantity:numberValue(getField(batch,row,'quantity')),manual:false,...suggestion}
  });
- saveJSON(MATCH_KEY,[...retained,...matches]);openSection('finance');showToastMessage(`AI 已完成 ${matches.length} 行匹配`)
+ const next=[...retained,...matches];workflowMatches=next;
+ try{await window.CheerfulSupabase.saveMatches(matches);await window.CheerfulSupabase.refreshMatches();openSection('finance');showToastMessage(`AI 已完成并保存 ${matches.length} 行匹配`)}
+ catch(error){workflowMatches=retained;alert(`匹配结果保存失败：${error.message}`)}
 };
-window.overrideRoyaltyMatch=function(id,recordingId){
+window.overrideRoyaltyMatch=async function(id,recordingId){
  const matches=getMatches(),match=matches.find(item=>item.id===id);if(!match)return;
  match.recordingId=recordingId;match.confidence=recordingId?100:0;match.manual=Boolean(recordingId);match.reason=recordingId?'财务人工确认':'财务标记为未匹配';
- saveJSON(MATCH_KEY,matches);openSection('finance');showToastMessage('匹配结果已更新')
+ try{await window.CheerfulSupabase.saveMatches([match]);await window.CheerfulSupabase.refreshMatches();openSection('finance');showToastMessage('匹配结果已保存到 Supabase')}
+ catch(error){alert(`匹配结果保存失败：${error.message}`)}
 };
 
 function renderCalculation(){
@@ -170,10 +172,10 @@ function renderPayeeSummary(results){
  const items=Object.values(grouped);if(!items.length)return'';
  return `<div class="fw-summary">${items.slice(0,6).map(item=>`<div class="fw-summary-card"><span>${esc(item.payee)} · ${item.count} 笔</span><b>${money(item.amount,item.currency)}</b></div>`).join('')}</div>`
 }
-window.runRoyaltyCalculation=function(){
+window.runRoyaltyCalculation=async function(){
  const batch=currentBatch();if(!batch){alert('请先导入平台版税报表。');return}
  let matches=getMatches().filter(item=>item.batchId===batch.id);
- if(!matches.length){runAIRoyaltyMatching();matches=getMatches().filter(item=>item.batchId===batch.id)}
+ if(!matches.length){await runAIRoyaltyMatching();matches=getMatches().filter(item=>item.batchId===batch.id)}
  const retained=getCalculations().filter(item=>item.batchId!==batch.id),results=[];
  matches.filter(match=>match.recordingId&&match.confidence>=58).forEach(match=>{
   const date=periodDate(match.period||batch.period),rules=activeRulesFor(match.recordingId,date);
@@ -222,4 +224,8 @@ window.setRoyaltyExceptionStatus=function(value){exceptionStatus=value;openSecti
 window.toggleRoyaltyException=function(id,resolved){const reviews=getReviews();if(resolved)reviews[id]={resolved:true,updatedAt:new Date().toISOString()};else delete reviews[id];saveJSON(REVIEW_KEY,reviews);openSection('finance');showToastMessage(resolved?'异常已标记为解决':'异常已重新打开')};
 
 injectStyles();
+window.CheerfulFinanceWorkflow={
+ replaceMatches:function(records){workflowMatches=Array.isArray(records)?records:[]},
+ matches:function(){return workflowMatches.slice()}
+};
 })();

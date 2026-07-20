@@ -566,7 +566,7 @@ window.exportRoyaltyMatrixErrors=function(){
  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");
  link.href=url;link.download=(matrixState.fileName.replace(/\.[^.]+$/,"")||"royalty-matrix")+"-errors.csv";document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
 };
-window.confirmRoyaltyMatrixImport=function(){
+window.confirmRoyaltyMatrixImport=async function(){
  const report=buildReport();
  const original=financeRules.map(function(rule){return Object.assign({},rule)});
  try{
@@ -580,11 +580,14 @@ window.confirmRoyaltyMatrixImport=function(){
    return[item.targetId,Object.assign({},existing,incoming)];
   }));
   financeRules=financeRules.map(function(rule){return updateMap.has(rule.id)?updateMap.get(rule.id):rule});
-  report.importedItems.forEach(function(item){
+  const importedRules=report.importedItems.map(function(item){
    const id="CM-RULE-"+String(sequence++).padStart(4,"0");
-   financeRules.push(ruleRecord(item,id));
+   const rule=ruleRecord(item,id);financeRules.push(rule);return rule;
   });
-  saveFinanceData();
+  const changedRules=Array.from(updateMap.values()).concat(importedRules);
+  showToastMessage("正在将版税规则保存到 Supabase…");
+  await window.CheerfulSupabase.saveRules(changedRules);
+  await window.CheerfulSupabase.refreshRules();
   const queue=safeJSON(REVIEW_KEY,[]);
   report.reviewItems.forEach(function(item){
    queue.unshift({id:matrixState.batchId+"-"+item.rowNumber,batchId:matrixState.batchId,rowNumber:item.rowNumber,status:"Needs Review",reason:item.issues.join("；")||item.match.reason,sourceData:item.values.sourceRow,createdAt:new Date().toISOString()});
@@ -597,8 +600,7 @@ window.confirmRoyaltyMatrixImport=function(){
   matrixState.report=report;matrixState.result=result;matrixStep=7;renderResult();showToastMessage("Royalty Matrix 批量导入完成");
  }catch(error){
   financeRules=original;
-  try{saveFinanceData()}catch(_){}
-  alert("导入失败，数据未写入："+(error.message||"未知错误"));
+  alert("Supabase 导入失败，数据库未修改："+(error.message||"未知错误"));
  }
 };
 window.finishRoyaltyMatrixImport=function(){closeRoyaltyMatrixBulkImport();financeTab="rules";openSection("finance")};

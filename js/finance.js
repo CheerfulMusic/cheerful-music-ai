@@ -1,8 +1,6 @@
 console.log("Cheerful Finance Loaded");
 (function(){
 'use strict';
-const KEY='cm_finance_imports_v131';
-const PKEY='cm_finance_preview_v131';
 const platforms=[
 ['spotify','Spotify','国际'],['apple','Apple Music','国际'],['youtube','YouTube Music','国际'],
 ['amazon','Amazon Music','国际'],['tiktok','TikTok / 汽水音乐','短视频'],['meta','Meta / Facebook / Instagram','短视频'],
@@ -11,12 +9,11 @@ const platforms=[
 ['melon','Melon / Genie / Bugs','韩国'],['line','LINE MUSIC / AWA','日本'],['boomplay','Boomplay / Audiomack','非洲']
 ];
 let currentPlatform='spotify';
-let imports=JSON.parse(localStorage.getItem(KEY)||'[]');
-let preview=JSON.parse(localStorage.getItem(PKEY)||'null');
+let imports=[];
+let preview=null;
 
 function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function pname(id){return (platforms.find(p=>p[0]===id)||[id,id])[1]}
-function save(){localStorage.setItem(KEY,JSON.stringify(imports)); preview?localStorage.setItem(PKEY,JSON.stringify(preview)):localStorage.removeItem(PKEY)}
 function detectPlatform(name){
  const n=name.toLowerCase(), map=[['spotify',/spotify/],['apple',/apple|itunes/],['youtube',/youtube/],['amazon',/amazon/],['tiktok',/tiktok|qishui|汽水/],['meta',/meta|facebook|instagram/],['qq',/qq|kugou|kuwo|酷狗|酷我/],['netease',/netease|163|网易/],['douyin',/douyin|抖音/],['bilibili',/bilibili|b站/],['migu',/migu|咪咕/],['kkbox',/kkbox/],['melon',/melon|genie|bugs/],['line',/line|awa/],['boomplay',/boomplay|audiomack/]];
  return (map.find(x=>x[1].test(n))||[currentPlatform])[0]
@@ -42,16 +39,20 @@ window.renderRoyaltyImportManager=function(){
  <div id="royaltyDropZone" class="ri-drop" onclick="document.getElementById('royaltyFileInput').click()"><div style="font-size:32px">⇧</div><h3>拖拽平台报表到这里</h3><p>当前平台：${esc(pname(currentPlatform))} · 支持 CSV、XLSX、XLS</p><button class="primary" style="margin-top:16px" type="button">选择文件</button><input id="royaltyFileInput" type="file" accept=".csv,.xlsx,.xls" hidden onchange="handleRoyaltyFiles(this.files)"></div>
  ${preview?renderPreview(preview):''}
  <div style="margin-top:18px"><div class="panel-head"><h3>导入历史</h3><span class="finance-chip">${imports.length} 个批次</span></div><div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>批次编号</th><th>平台</th><th>文件名</th><th>结算周期</th><th>数据行</th><th>识别歌曲</th><th>收入</th><th>状态</th><th>操作</th></tr></thead><tbody>${imports.length?imports.map(i=>`<tr><td>${esc(i.id)}</td><td>${esc(pname(i.platform))}</td><td>${esc(i.fileName)}</td><td>${esc(i.period)}</td><td>${i.rowCount}</td><td>${i.songCount}</td><td>${esc(i.currency)} ${Number(i.revenue).toLocaleString(undefined,{maximumFractionDigits:2})}</td><td><span class="finance-chip ok">已解析</span></td><td><button class="finance-link" onclick="viewRoyaltyImport('${i.id}')">预览</button><button class="finance-link finance-danger" onclick="deleteRoyaltyImport('${i.id}')">删除</button></td></tr>`).join(''):`<tr><td colspan="9" class="finance-empty">尚未导入平台报表</td></tr>`}</tbody></table></div></div>
- <div class="finance-note">V1.3.1 已实现本地解析和预览。接入 Supabase 后，原始文件将进入 Storage，解析数据将写入数据库。</div>`
+ <div class="finance-note">导入批次和解析摘要已保存到 Supabase，所有授权财务成员会读取同一份记录。</div>`
 }
 function renderPreview(i){return `<div class="ri-stats"><div class="ri-stat"><span>数据行数</span><b>${i.rowCount}</b></div><div class="ri-stat"><span>识别歌曲</span><b>${i.songCount}</b></div><div class="ri-stat"><span>收入合计</span><b>${esc(i.currency)} ${Number(i.revenue).toLocaleString(undefined,{maximumFractionDigits:2})}</b></div><div class="ri-stat"><span>结算周期</span><b style="font-size:13px">${esc(i.period)}</b></div></div><div class="panel-head"><h3>字段识别与数据预览</h3><span class="finance-chip">${esc(i.fileName)}</span></div><div class="ri-map">${Object.entries(i.mapping||{}).map(([f,c])=>`<span>${esc(f)} ← ${esc(c)}</span>`).join('')||'<span>未识别到标准字段</span>'}</div><div class="finance-table-wrap"><table class="finance-table"><thead><tr>${i.headers.slice(0,8).map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${i.rows.slice(0,20).map(r=>`<tr>${i.headers.slice(0,8).map(h=>`<td>${esc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="finance-actions"><button class="ghost" onclick="showToastMessage('AI自动匹配歌曲将在 V1.3.2 接入')">下一步：AI自动匹配歌曲 →</button></div>`}
 window.selectRoyaltyPlatform=id=>{currentPlatform=id;openSection('finance')}
 window.openRoyaltyImportModal=()=>setTimeout(()=>document.getElementById('royaltyFileInput')?.click(),0)
-window.handleRoyaltyFiles=async files=>{const file=files&&files[0];if(!file)return;if(file.size>25*1024*1024){alert('前端原型暂时只处理25MB以下文件');return}try{showToastMessage('正在读取平台报表…');currentPlatform=detectPlatform(file.name);const rows=await readFile(file);if(!rows.length)throw new Error('文件中没有可识别的数据');const headers=Object.keys(rows[0]),mapping=detectColumns(headers),sum=summary(rows,mapping),id='CM-IMP-'+Date.now().toString().slice(-10),item={id,platform:currentPlatform,fileName:file.name,headers,mapping,rows:rows.slice(0,20),status:'已解析',...sum};imports.unshift(item);preview=item;save();openSection('finance');showToastMessage(`已解析 ${sum.rowCount} 行数据`)}catch(e){alert(e.message||'文件解析失败')}finally{const input=document.getElementById('royaltyFileInput');if(input)input.value=''}}
-window.viewRoyaltyImport=id=>{preview=imports.find(i=>i.id===id)||null;save();openSection('finance')}
-window.deleteRoyaltyImport=id=>{if(!confirm('确认删除这个导入批次吗？'))return;imports=imports.filter(i=>i.id!==id);if(preview&&preview.id===id)preview=null;save();openSection('finance')}
+window.handleRoyaltyFiles=async files=>{const file=files&&files[0];if(!file)return;if(file.size>25*1024*1024){alert('当前单个文件上限为25MB');return}try{showToastMessage('正在读取平台报表…');currentPlatform=detectPlatform(file.name);const rows=await readFile(file);if(!rows.length)throw new Error('文件中没有可识别的数据');const headers=Object.keys(rows[0]),mapping=detectColumns(headers),sum=summary(rows,mapping),id='CM-IMP-'+Date.now().toString().slice(-10),item={id,platform:currentPlatform,fileName:file.name,headers,mapping,rows:rows.slice(0,20),status:'已解析',...sum};await window.CheerfulSupabase.saveImports([item]);await window.CheerfulSupabase.refreshImports();preview=imports.find(entry=>entry.id===id)||item;openSection('finance');showToastMessage(`已保存 ${sum.rowCount} 行导入摘要到 Supabase`)}catch(e){alert(e.message||'文件解析失败')}finally{const input=document.getElementById('royaltyFileInput');if(input)input.value=''}}
+window.viewRoyaltyImport=id=>{preview=imports.find(i=>i.id===id)||null;openSection('finance')}
+window.deleteRoyaltyImport=async id=>{if(!confirm('确认删除这个导入批次吗？'))return;try{await window.CheerfulSupabase.deleteImports([id]);if(preview&&preview.id===id)preview=null;await window.CheerfulSupabase.refreshImports();openSection('finance');showToastMessage('导入批次已从 Supabase 删除')}catch(error){alert(`删除失败：${error.message}`)}}
 document.addEventListener('dragover',e=>{const z=document.getElementById('royaltyDropZone');if(!z)return;e.preventDefault();z.classList.add('drag')});
 document.addEventListener('dragleave',e=>{const z=document.getElementById('royaltyDropZone');if(z&&!e.relatedTarget)z.classList.remove('drag')});
 document.addEventListener('drop',e=>{const z=document.getElementById('royaltyDropZone');if(!z)return;e.preventDefault();z.classList.remove('drag');if(e.dataTransfer?.files?.length)handleRoyaltyFiles(e.dataTransfer.files)});
 styles();
+window.CheerfulFinanceImports={
+ replace(records){imports=Array.isArray(records)?records:[];if(preview)preview=imports.find(item=>item.id===preview.id)||null},
+ all(){return imports.slice()}
+};
 })();

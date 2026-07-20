@@ -123,26 +123,18 @@ let current='dashboard',lang='zh';
 const $=id=>document.getElementById(id);
 function buildNav(){ $('nav').innerHTML=modules.map(m=>`<button data-id="${m.id}" class="${m.id===current?'active':''}"><span class="ico">${m.icon}</span>${m.name}</button>`).join(''); $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>openSection(b.dataset.id)); }
 
-const defaultRecordings=[
- {id:'CM-R-000001',workTitle:'莫问归期',versionName:'原版',artist:'蒋雪儿',isrc:'CN-CM-20-00001',versionType:'原版',releaseDate:'2020-06-18'},
- {id:'CM-R-000002',workTitle:'莫问归期',versionName:'DJ版',artist:'蒋雪儿',isrc:'CN-CM-21-00008',versionType:'DJ版',releaseDate:'2021-03-12'},
- {id:'CM-R-000003',workTitle:'燕无歇',versionName:'原版',artist:'蒋雪儿',isrc:'CN-CM-20-00015',versionType:'原版',releaseDate:'2020-09-05'},
- {id:'CM-R-000004',workTitle:'同名歌曲示例',versionName:'A艺人版',artist:'艺人A',isrc:'CN-CM-25-00031',versionType:'翻唱版',releaseDate:'2025-01-08'},
- {id:'CM-R-000005',workTitle:'同名歌曲示例',versionName:'B艺人版',artist:'艺人B',isrc:'CN-CM-25-00032',versionType:'翻唱版',releaseDate:'2025-02-14'}
-];
-const defaultRoyaltyRules=[
- {id:'CM-RULE-0001',recordingId:'CM-R-000001',payee:'蒋雪儿',percentage:30,basis:'净收入 Net Receipts',startDate:'2024-01-01',endDate:'2026-12-31',contractNo:'CM-ART-2024-018'},
- {id:'CM-RULE-0002',recordingId:'CM-R-000002',payee:'蒋雪儿',percentage:35,basis:'成本回收后收入 Recouped Net',startDate:'2025-01-01',endDate:'2027-12-31',contractNo:'CM-ART-2025-006'},
- {id:'CM-RULE-0003',recordingId:'CM-R-000003',payee:'蒋雪儿',percentage:25,basis:'净收入 Net Receipts',startDate:'2023-01-01',endDate:'',contractNo:'CM-ART-2023-011'}
-];
-let financeRecordings=JSON.parse(localStorage.getItem('cm_finance_recordings')||'null')||defaultRecordings;
-let financeRules=JSON.parse(localStorage.getItem('cm_finance_rules')||'null')||defaultRoyaltyRules;
+const defaultRecordings=[];
+const defaultRoyaltyRules=[];
+let financeRecordings=[];
+let financeRules=[];
+let financeDataLoading=true;
 let financeTab='catalog';
 let financeSearch='';
+let editingRecordingId='';
+let editingRuleId='';
 
 function saveFinanceData(){
- localStorage.setItem('cm_finance_recordings',JSON.stringify(financeRecordings));
- localStorage.setItem('cm_finance_rules',JSON.stringify(financeRules));
+ return true;
 }
 function financeRecordingLabel(id){
  const r=financeRecordings.find(x=>x.id===id);
@@ -160,7 +152,7 @@ function financePage(){
  const artistCount=new Set(financeRecordings.map(r=>r.artist)).size;
  const activeRules=financeRules.filter(r=>!r.endDate||r.endDate>=new Date().toISOString().slice(0,10)).length;
  return `<section class="section active">
- <div class="hero"><div><h1>AI财务</h1><p>版税系统第一阶段：先维护歌曲与录音版本，以及每位艺人的分成规则和有效年限。</p></div>${financeTab==='imports'?'<button class="primary" onclick="openRoyaltyImportModal()">上传平台报表</button>':(financeTab==='catalog'||financeTab==='rules'?`<button class="primary" onclick="openFinanceModal(financeTab==='catalog'?'recording':'rule')">${financeTab==='catalog'?'新增录音版本':'新增分成规则'}</button>`:renderFinanceWorkflowHeroAction(financeTab))}</div>
+ <div class="hero"><div><h1>AI财务</h1><p>歌曲、录音版本、版税规则和平台报表均由 Supabase 安全保存。</p></div>${financeTab==='imports'?'<button class="primary" onclick="openRoyaltyImportModal()">上传平台报表</button>':(financeTab==='catalog'||financeTab==='rules'?`<button class="primary" onclick="openFinanceModal(financeTab==='catalog'?'recording':'rule')">${financeTab==='catalog'?'新增录音版本':'新增分成规则'}</button>`:renderFinanceWorkflowHeroAction(financeTab))}</div>
  <div class="finance-summary">
    <div class="metric"><div class="label">录音版本</div><div class="value">${financeRecordings.length}</div><div class="change">每个版本独立识别</div></div>
    <div class="metric"><div class="label">涉及艺人</div><div class="value">${artistCount}</div><div class="change">同名歌曲可区分演唱者</div></div>
@@ -178,35 +170,38 @@ function financePage(){
    </div>
    ${financeTab==='catalog'?renderRecordingManager():(financeTab==='rules'?renderRuleManager():(financeTab==='imports'?renderRoyaltyImportManager():renderFinanceWorkflowTab(financeTab)))}
  </div>
- <div class="finance-note">当前是前端原型：你新增的数据只保存在当前浏览器。正式接入数据库后，团队成员才会共享同一套歌曲和分成数据。</div>
+ <div class="finance-note">数据来源：Supabase。保存成功后团队成员会读取同一套数据，刷新或更换电脑不会丢失。</div>
  ${renderFinanceModals()}
  </section>`;
 }
 function renderRecordingManager(){
  const q=financeSearch.trim().toLowerCase();
  const rows=financeRecordings.filter(r=>!q||[r.id,r.workTitle,r.versionName,r.artist,r.isrc,r.versionType].join(' ').toLowerCase().includes(q));
+ if(financeDataLoading)return `<div class="finance-empty">正在从 Supabase 读取歌曲库…</div>`;
  return `<div class="finance-toolbar">
    <div class="finance-toolbar-left"><input class="finance-search" placeholder="搜索歌名、艺人、ISRC或版本" value="${financeSearch.replace(/"/g,'&quot;')}" oninput="setFinanceSearch(this.value)"></div>
    <button class="primary" onclick="openFinanceModal('recording')">新增录音版本</button>
  </div>
  <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>内部ID</th><th>作品名</th><th>版本</th><th>演唱者</th><th>ISRC</th><th>版本类型</th><th>发行日期</th><th>状态</th><th>操作</th></tr></thead>
- <tbody>${rows.length?rows.map(r=>`<tr><td>${r.id}</td><td>${r.workTitle}</td><td>${r.versionName}</td><td>${r.artist}</td><td>${r.isrc}</td><td><span class="finance-chip">${r.versionType}</span></td><td>${r.releaseDate}</td><td><span class="finance-chip ok">正常</span></td><td><button class="finance-link" onclick="deleteRecording('${r.id}')">删除</button></td></tr>`).join(''):`<tr><td colspan="9" class="finance-empty">没有找到匹配记录</td></tr>`}</tbody></table></div>`;
+ <tbody>${rows.length?rows.map(r=>`<tr><td>${r.id}</td><td>${r.workTitle}</td><td>${r.versionName}</td><td>${r.artist}</td><td>${r.isrc}</td><td><span class="finance-chip">${r.versionType}</span></td><td>${r.releaseDate||'—'}</td><td><span class="finance-chip ok">${r.status==='unreleased'?'未发行':r.status==='takedown'?'下架':'正常'}</span></td><td><button class="finance-link" onclick="openFinanceModal('recording','${r.id}')">编辑</button><button class="finance-link" onclick="deleteRecording('${r.id}')">删除</button></td></tr>`).join(''):`<tr><td colspan="9" class="finance-empty">Supabase 歌曲库暂无记录</td></tr>`}</tbody></table></div>`;
 }
 function renderRuleManager(){
  const q=financeSearch.trim().toLowerCase();
  const rows=financeRules.filter(r=>!q||[r.id,financeRecordingLabel(r.recordingId),r.payee,r.basis,r.contractNo].join(' ').toLowerCase().includes(q));
+ if(financeDataLoading)return `<div class="finance-empty">正在从 Supabase 读取版税规则…</div>`;
  return `<div class="finance-toolbar">
    <div class="finance-toolbar-left"><input class="finance-search" placeholder="搜索艺人、歌曲、合同编号" value="${financeSearch.replace(/"/g,'&quot;')}" oninput="setFinanceSearch(this.value)"></div>
    <button class="primary" onclick="openFinanceModal('rule')">新增分成规则</button>
  </div>
  <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>规则ID</th><th>录音版本</th><th>收款方</th><th>比例</th><th>计算基数</th><th>生效日期</th><th>结束日期</th><th>合同编号</th><th>状态</th><th>操作</th></tr></thead>
- <tbody>${rows.length?rows.map(r=>{const active=!r.endDate||r.endDate>=new Date().toISOString().slice(0,10);return `<tr><td>${r.id}</td><td>${financeRecordingLabel(r.recordingId)}</td><td>${r.payee}</td><td>${r.percentage}%</td><td>${r.basis}</td><td>${r.startDate}</td><td>${r.endDate||'长期有效'}</td><td>${r.contractNo}</td><td><span class="finance-chip ${active?'ok':'warn'}">${active?'有效':'已结束'}</span></td><td><button class="finance-link" onclick="deleteRule('${r.id}')">删除</button></td></tr>`}).join(''):`<tr><td colspan="10" class="finance-empty">没有找到匹配记录</td></tr>`}</tbody></table></div>`;
+ <tbody>${rows.length?rows.map(r=>{const active=!r.endDate||r.endDate>=new Date().toISOString().slice(0,10);return `<tr><td>${r.id}</td><td>${financeRecordingLabel(r.recordingId)}</td><td>${r.payee}</td><td>${r.percentage}%</td><td>${r.basis}</td><td>${r.startDate}</td><td>${r.endDate||'长期有效'}</td><td>${r.contractNo}</td><td><span class="finance-chip ${active?'ok':'warn'}">${active?'有效':'已结束'}</span></td><td><button class="finance-link" onclick="openFinanceModal('rule','${r.id}')">编辑</button><button class="finance-link" onclick="deleteRule('${r.id}')">删除</button></td></tr>`}).join(''):`<tr><td colspan="10" class="finance-empty">Supabase 暂无版税规则</td></tr>`}</tbody></table></div>`;
 }
 function renderFinanceModals(){
  const options=financeRecordings.map(r=>`<option value="${r.id}">${financeRecordingLabel(r.id)} · ${r.isrc}</option>`).join('');
  return `<div id="recordingModal" class="finance-modal-backdrop" onclick="closeFinanceModalFromBackdrop(event,'recordingModal')"><div class="finance-modal">
-   <div class="finance-modal-head"><h3>新增录音版本</h3><button class="finance-close" onclick="closeFinanceModal('recordingModal')">×</button></div>
+   <div class="finance-modal-head"><h3>${editingRecordingId?'编辑录音版本':'新增录音版本'}</h3><button class="finance-close" onclick="closeFinanceModal('recordingModal')">×</button></div>
    <form onsubmit="submitRecording(event)"><div class="finance-form-grid">
+     <div><label>Work ID（可选）</label><input name="workId" placeholder="例如：CM-W-000001"></div>
      <div><label>作品名</label><input name="workTitle" required placeholder="例如：莫问归期"></div>
      <div><label>版本名称</label><input name="versionName" required placeholder="原版 / DJ版 / Live版"></div>
      <div><label>演唱者</label><input name="artist" required placeholder="艺人姓名"></div>
@@ -216,7 +211,7 @@ function renderFinanceModals(){
    </div><div class="finance-actions"><button type="button" class="ghost" onclick="closeFinanceModal('recordingModal')">取消</button><button class="primary" type="submit">保存</button></div></form>
  </div></div>
  <div id="ruleModal" class="finance-modal-backdrop" onclick="closeFinanceModalFromBackdrop(event,'ruleModal')"><div class="finance-modal">
-   <div class="finance-modal-head"><h3>新增分成规则</h3><button class="finance-close" onclick="closeFinanceModal('ruleModal')">×</button></div>
+   <div class="finance-modal-head"><h3>${editingRuleId?'编辑分成规则':'新增分成规则'}</h3><button class="finance-close" onclick="closeFinanceModal('ruleModal')">×</button></div>
    <form onsubmit="submitRule(event)"><div class="finance-form-grid">
      <div class="full"><label>录音版本</label><select name="recordingId" required>${options}</select></div>
      <div><label>收款方 / 艺人</label><input name="payee" required placeholder="艺人或权利人姓名"></div>
@@ -230,35 +225,45 @@ function renderFinanceModals(){
 }
 function setFinanceTab(tab){financeTab=tab;financeSearch='';openSection('finance')}
 function setFinanceSearch(value){financeSearch=value;const pos=document.querySelector('.finance-search')?.selectionStart;openSection('finance');const input=document.querySelector('.finance-search');if(input){input.focus();input.setSelectionRange(pos,pos)}}
-function openFinanceModal(type){const id=type==='recording'?'recordingModal':'ruleModal';document.getElementById(id)?.classList.add('show')}
+function openFinanceModal(type,id=''){
+ if(type==='recording')editingRecordingId=id;else editingRuleId=id;
+ openSection('finance');const modalId=type==='recording'?'recordingModal':'ruleModal';const modal=document.getElementById(modalId);modal?.classList.add('show');
+ const form=modal?.querySelector('form');if(!form)return;
+ const record=type==='recording'?financeRecordings.find(item=>item.id===id):financeRules.find(item=>item.id===id);if(!record)return;
+ Object.entries(type==='recording'?{workId:record.workId,workTitle:record.workTitle,versionName:record.versionName,artist:record.artist,isrc:record.isrc,versionType:record.versionType,releaseDate:record.releaseDate}:{recordingId:record.recordingId,payee:record.payee,percentage:record.percentage,basis:record.basis,contractNo:record.contractNo,startDate:record.startDate,endDate:record.endDate}).forEach(([name,value])=>{if(form.elements[name])form.elements[name].value=value||''});
+}
 function closeFinanceModal(id){document.getElementById(id)?.classList.remove('show')}
 function closeFinanceModalFromBackdrop(event,id){if(event.target.id===id)closeFinanceModal(id)}
-function submitRecording(event){
+async function submitRecording(event){
  event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());
- if(financeRecordings.some(r=>r.isrc.trim().toUpperCase()===data.isrc.trim().toUpperCase())){alert('ISRC 已存在，请确认是否为同一录音版本。');return}
- financeRecordings.push({id:nextRecordingId(),...data});saveFinanceData();openSection('finance');showToastMessage('录音版本已保存')
+ if(financeRecordings.some(r=>r.id!==editingRecordingId&&r.isrc&&r.isrc.trim().toUpperCase()===data.isrc.trim().toUpperCase())){alert('ISRC 已存在，请确认是否为同一录音版本。');return}
+ const record={...(financeRecordings.find(item=>item.id===editingRecordingId)||{}),id:editingRecordingId||nextRecordingId(),...data};
+ try{event.submitter.disabled=true;showToastMessage('正在保存到 Supabase…');await window.CheerfulSupabase.saveCatalog([record]);editingRecordingId='';closeFinanceModal('recordingModal');await window.CheerfulSupabase.refreshCatalog();openSection('finance');showToastMessage('录音版本已保存到 Supabase')}
+ catch(error){alert(`保存失败：${error.message}`)}finally{if(event.submitter)event.submitter.disabled=false}
 }
-function submitRule(event){
+async function submitRule(event){
  event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());data.percentage=Number(data.percentage);
  if(data.endDate&&data.endDate<data.startDate){alert('结束日期不能早于生效日期。');return}
- const overlap=financeRules.some(r=>r.recordingId===data.recordingId&&r.payee===data.payee&&!(data.endDate&&data.endDate<r.startDate)&&!(r.endDate&&r.endDate<data.startDate));
+ const overlap=financeRules.some(r=>r.id!==editingRuleId&&r.recordingId===data.recordingId&&r.payee===data.payee&&!(data.endDate&&data.endDate<r.startDate)&&!(r.endDate&&r.endDate<data.startDate));
  if(overlap&&!confirm('检测到同一收款方在该录音版本上存在重叠有效期。仍然保存吗？'))return;
- financeRules.push({id:nextRuleId(),...data});saveFinanceData();openSection('finance');showToastMessage('分成规则已保存')
+ const record={...(financeRules.find(item=>item.id===editingRuleId)||{}),id:editingRuleId||nextRuleId(),...data};
+ try{event.submitter.disabled=true;showToastMessage('正在保存到 Supabase…');await window.CheerfulSupabase.saveRules([record]);editingRuleId='';closeFinanceModal('ruleModal');await window.CheerfulSupabase.refreshRules();openSection('finance');showToastMessage('分成规则已保存到 Supabase')}
+ catch(error){alert(`保存失败：${error.message}`)}finally{if(event.submitter)event.submitter.disabled=false}
 }
-function deleteRecording(id){
+async function deleteRecording(id){
  if(financeRules.some(r=>r.recordingId===id)){alert('该录音版本已有分成规则，请先删除对应规则。');return}
  if(!confirm('确认删除这个录音版本吗？'))return;
- financeRecordings=financeRecordings.filter(r=>r.id!==id);saveFinanceData();openSection('finance')
+ try{await window.CheerfulSupabase.deleteCatalog([id]);await window.CheerfulSupabase.refreshCatalog();openSection('finance');showToastMessage('录音版本已从 Supabase 删除')}catch(error){alert(`删除失败：${error.message}`)}
 }
-function deleteRule(id){
+async function deleteRule(id){
  if(!confirm('确认删除这条分成规则吗？'))return;
- financeRules=financeRules.filter(r=>r.id!==id);saveFinanceData();openSection('finance')
+ try{await window.CheerfulSupabase.deleteRules([id]);await window.CheerfulSupabase.refreshRules();openSection('finance');showToastMessage('分成规则已从 Supabase 删除')}catch(error){alert(`删除失败：${error.message}`)}
 }
 function showToastMessage(message){const t=$('toast');t.textContent=message;t.classList.add('show');setTimeout(()=>{t.classList.remove('show');t.textContent='该模块将在下一阶段接入真实工作流。'},2200)}
 
 function dashboard(){return `<section class="section active"><div class="hero"><div><h1>欢迎回来，Snow</h1><p>这是 Cheerful Music AI OS 的工作总览。</p></div><button class="primary" onclick="showToast()">创建新工作流</button></div><div class="metrics"><div class="metric"><div class="label">已启用工作流</div><div class="value">9</div><div class="change">覆盖核心部门</div></div><div class="metric"><div class="label">今日待办</div><div class="value">18</div><div class="change">其中5项高优先级</div></div><div class="metric"><div class="label">本周自动执行</div><div class="value">128</div><div class="change">较上周 +16%</div></div><div class="metric"><div class="label">系统状态</div><div class="value" style="color:#6ee788">正常</div><div class="change">所有模块可用</div></div></div><div class="grid"><div class="card"><div class="card-head"><h3>今日重点</h3><button class="ghost" onclick="showToast()">查看全部</button></div><div class="list"><div class="task"><div class="task-left"><div class="task-icon">¥</div><div><b>版税拆分等待确认</b><small>AI财务 · 2026年第二季度</small></div></div><span class="badge red">高优先级</span></div><div class="task"><div class="task-left"><div class="task-icon">♫</div><div><b>12首Demo待审核</b><small>AI A&R · 国际写作营</small></div></div><span class="badge">待处理</span></div><div class="task"><div class="task-left"><div class="task-icon">◎</div><div><b>3位候选人面试分析</b><small>AI HR · 本周招聘</small></div></div><span class="badge">今天</span></div><div class="task"><div class="task-left"><div class="task-icon">✦</div><div><b>海外推广素材本地化</b><small>AI推广 · 5条短视频</small></div></div><span class="badge">处理中</span></div></div></div><div class="card"><div class="card-head"><h3>最近活动</h3></div><div class="list"><div class="activity"><div><b>更新分成规则</b><small>财务团队 · 18分钟前</small></div></div><div class="activity"><div><b>新增发行计划</b><small>A&R团队 · 1小时前</small></div></div><div class="activity"><div><b>完成合同检查</b><small>法务团队 · 今天</small></div></div></div></div></div><div class="card" style="margin-top:16px"><div class="card-head"><h3>部门入口</h3><span class="badge">9个模块</span></div><div class="module-grid">${modules.filter(m=>m.id!=='dashboard').map(m=>`<div class="module" onclick="openSection('${m.id}')"><div class="micon">${m.icon}</div><h4>${m.name}</h4><p>${m.desc}</p><div class="open">打开模块 →</div></div>`).join('')}</div></div></section>`}
 function featurePage(id){const m=modules.find(x=>x.id===id);return `<section class="section active"><div class="hero"><div><h1>${m.name}</h1><p>${m.desc}。第一阶段为页面框架，真实数据与工作流将在后续接入。</p></div><button class="primary" onclick="showToast()">新建任务</button></div><div class="feature-grid">${features[id].map((f,i)=>`<div class="feature ${f[2]?'focus':''}" onclick="showToast()"><span class="tag">${f[2]||'即将接入'}</span><div style="font-size:23px">${m.icon}</div><h3>${f[0]}</h3><p>${f[1]}</p></div>`).join('')}</div><div class="empty-state">当前页面使用模拟内容。第二阶段将优先建设 AI财务 → 版税分成系统。</div></section>`}
-function openSection(id){current=id;buildNav();const m=modules.find(x=>x.id===id);$('pageTitle').textContent=m.name;$('content').innerHTML=id==='dashboard'?dashboard():(id==='finance'?financePage():featurePage(id))}
+function openSection(id){current=id;buildNav();if(id==='developer'){if(typeof renderDeveloperConsole!=='function')return;$('pageTitle').textContent='Developer Console';$('content').innerHTML=renderDeveloperConsole();return}const m=modules.find(x=>x.id===id);$('pageTitle').textContent=m.name;$('content').innerHTML=id==='dashboard'?dashboard():(id==='finance'?financePage():featurePage(id))}
 function showToast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function login(){const email=$('email').value.trim().toLowerCase(),password=$('password').value;const u=USERS[email];$('loginError').textContent='';if(!u){$('loginError').textContent=lang==='zh'?'账号不存在':'Account not found';return}if(u.password!==password){$('loginError').textContent=lang==='zh'?'密码错误':'Wrong password';return}if($('remember').checked)localStorage.setItem('cm_ai_os_user',email);$('loginView').classList.add('hidden');$('osView').classList.remove('hidden');buildNav();openSection('dashboard')}
 function logout(){localStorage.removeItem('cm_ai_os_user');$('osView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value=''}
@@ -271,6 +276,7 @@ const saved=localStorage.getItem('cm_ai_os_user');if(saved){$('email').value=sav
 <script src="js/finance-workflow.js"></script>
 <script src="js/song-library-bulk-import.js"></script>
 <script src="js/royalty-matrix-bulk-import.js"></script>
+<script src="js/developer-console.js"></script>
 <script src="js/cheerful-rbac.js"></script>
 <script src="js/supabase-sync.js"></script>
 <script src="js/cheerful-gpt.js"></script>

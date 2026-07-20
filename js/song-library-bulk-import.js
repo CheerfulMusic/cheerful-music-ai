@@ -280,15 +280,18 @@ window.exportSongBulkErrors=function(){
  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
  link.href=url;link.download=`${bulkState.fileName.replace(/\.[^.]+$/,'')||'song-library'}-errors.csv`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
 };
-window.confirmSongBulkImport=function(){
+window.confirmSongBulkImport=async function(){
  const report=buildReport();if(!report.successCount){alert('没有通过验证、可以导入或更新的录音版本。');return}
  const original=financeRecordings.map(item=>({...item}));
  try{
   const updateById=new Map(report.updates.map(item=>[item.targetId,item.record]));
-  financeRecordings=financeRecordings.map(item=>updateById.get(item.id)||item);financeRecordings.push(...report.newItems.map(item=>item.record));saveFinanceData();
+  const changed=report.updates.map(item=>updateById.get(item.targetId)).concat(report.newItems.map(item=>item.record));
+  showToastMessage(`正在向 Supabase 写入 ${changed.length.toLocaleString()} 条歌曲数据…`);
+  await window.CheerfulSupabase.saveCatalog(changed);
+  await window.CheerfulSupabase.refreshCatalog();
   bulkState.report=report;bulkState.result={created:report.newItems.length,updated:report.updates.length,success:report.successCount,failed:report.failCount,sample:report.newItems.slice(0,5).map(item=>item.record)};renderResult();showToastMessage(`成功处理 ${report.successCount.toLocaleString()} 行歌曲数据`)
  }catch(error){
-  financeRecordings=original;try{saveFinanceData()}catch(_){}alert('浏览器存储空间不足，数据未写入。接入 Supabase 后可安全保存完整歌曲库。')
+  financeRecordings=original;alert(`Supabase 导入失败，未修改数据库：${error.message||'未知错误'}`)
  }
 };
 window.finishSongBulkImport=function(){closeSongBulkImport();financeTab='catalog';openSection('finance')};
