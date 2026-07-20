@@ -40,13 +40,21 @@ async function main() {
     const royaltyBulk = current('js/royalty-matrix-bulk-import.js');
     assert(finance.includes('平台版税导入'));
     assert(finance.includes('window.CheerfulSupabase.saveImports'));
+    assert(finance.includes('window.CheerfulSupabase.saveImportRows'));
     assert(workflow.includes('AI自动匹配'));
     assert(workflow.includes('AI版税计算'));
     assert(workflow.includes('异常审核'));
     assert(workflow.includes('window.CheerfulSupabase.saveMatches'));
+    assert(workflow.includes('window.CheerfulSupabase.runCalculation'));
+    assert(workflow.includes('window.CheerfulSupabase.resolveException'));
+    assert(!workflow.includes('cm_finance_calculations_v140'));
+    assert(!workflow.includes('cm_finance_exception_reviews_v140'));
+    assert(!workflow.includes('localStorage'));
     assert(songBulk.includes('window.CheerfulSupabase.saveCatalog'));
     assert(royaltyBulk.includes('window.CheerfulSupabase.saveRules'));
     assert(!finance.includes("localStorage.setItem(KEY"));
+    const sync = current('js/supabase-sync.js');
+    ['saveImportRows', 'refreshCalculations', 'refreshExceptions', 'runCalculation', 'resolveException'].forEach(name => assert(sync.includes(name), `${name} missing from Supabase sync`));
   });
 
   await test('Login Page markup remains byte-for-byte unchanged', () => {

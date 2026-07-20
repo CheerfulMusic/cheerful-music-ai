@@ -41,9 +41,15 @@ async function readAuthorizedBusinessContext(user, question) {
     context.royaltyRules = await readTable('royalty_rules?select=id,rule_code,song_id,recording_id,payee_id,artist_name,payee_name,role,royalty_type,share_percentage,calculation_basis,effective_date,end_date,territory,platform,currency,contract_no,status,notes&order=updated_at.desc&limit=80');
     context.recentImports = await readTable('royalty_imports?select=id,batch_no,platform,period_start,period_end,original_filename,currency,status,total_rows,imported_rows,failed_rows,review_rows,total_amount,created_at&order=created_at.desc&limit=20');
     context.relevantMatches = await readTable('royalty_import_rows?select=id,import_id,source_row_number,song_id,recording_id,match_status,match_method,confidence,platform,territory,usage_date,currency,gross_amount,fees,tax_amount,net_amount,error_reason&order=created_at.desc&limit=80');
+    context.recentCalculationRuns = await readTable('royalty_calculation_runs?select=id,run_no,import_id,status,calculation_date,base_currency,input_rows,calculated_rows,exception_rows,total_source_amount,total_royalty_amount,completed_at,created_at&order=created_at.desc&limit=20');
+    context.recentCalculationLines = await readTable('royalty_calculation_lines?select=id,run_id,recording_id,payee_name,royalty_type,calculation_basis,share_percentage,source_amount,eligible_amount,royalty_amount,currency,status,created_at&order=created_at.desc&limit=80');
+    context.financeExceptions = await readTable('finance_exceptions?select=id,import_id,calculation_run_id,exception_type,risk_level,subject,description,suggestion,status,resolution_notes,resolved_at,updated_at&order=updated_at.desc&limit=80');
     context.summary.royaltyRuleCount = context.royaltyRules.length;
     context.summary.importBatchCount = context.recentImports.length;
     context.summary.matchedRowCount = context.relevantMatches.length;
+    context.summary.calculationRunCount = context.recentCalculationRuns.length;
+    context.summary.calculationLineCount = context.recentCalculationLines.length;
+    context.summary.openFinanceExceptionCount = context.financeExceptions.filter(item => !['resolved', 'dismissed'].includes(item.status)).length;
   }
 
   if (user.permissions.includes('hr_data')) {

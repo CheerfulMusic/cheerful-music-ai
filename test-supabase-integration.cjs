@@ -33,7 +33,7 @@ async function main() {
     const originalFetch = global.fetch;
     global.fetch = async (url) => {
       assert.ok(
-        ['/users?', '/songs?', '/royalty_rules?', '/royalty_imports?'].some(part => url.includes(part)),
+        ['/users?', '/songs?', '/royalty_rules?', '/royalty_imports?', '/royalty_import_rows?', '/royalty_calculation_runs?', '/royalty_calculation_lines?', '/finance_exceptions?'].some(part => url.includes(part)),
         `Unexpected health-check URL: ${url}`
       );
       return new Response('[]', { status: 200 });
@@ -50,11 +50,16 @@ async function main() {
         supabaseConfigured: true,
         authConfigured: true,
         schemaReady: true,
+        financeWorkflowReady: true,
         tables: {
           users: true,
           songs: true,
           royaltyRules: true,
-          royaltyImports: true
+          royaltyImports: true,
+          royaltyImportRows: true,
+          royaltyCalculationRuns: true,
+          royaltyCalculationLines: true,
+          financeExceptions: true
         }
       });
       assert.ok(!res.chunks.join('').includes(process.env.SUPABASE_URL));
@@ -145,6 +150,39 @@ async function main() {
     const payload = JSON.parse(res.chunks.join(''));
     assert.strictEqual(res.statusCode, 403);
     assert.strictEqual(payload.code, 'FORBIDDEN');
+  });
+
+  await test('Song Library pagination reads all 6,200 recordings instead of stopping at the Supabase 1,000-row limit', async () => {
+    const allRows = Array.from({ length: 6200 }, (_, index) => ({
+      id: `record-${index + 1}`,
+      recording_id: `CM-R-${String(index + 1).padStart(6, '0')}`,
+      songs: { work_id: `CM-W-${String(index + 1).padStart(6, '0')}`, title: `Song ${index + 1}` }
+    }));
+    let pageCalls = 0;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (url.includes('/gpt_audit_logs') && options.method === 'POST') return new Response('', { status: 201 });
+      if (url.includes('/recordings?select=')) {
+        pageCalls += 1;
+        const parsed = new URL(url);
+        const offset = Number(parsed.searchParams.get('offset') || 0);
+        const limit = Number(parsed.searchParams.get('limit') || 1000);
+        return new Response(JSON.stringify(allRows.slice(offset, offset + limit)), { status: 200 });
+      }
+      throw new Error(`Unexpected pagination URL: ${url}`);
+    };
+    try {
+      const handler = require('./api/os-data');
+      const token = auth.issueSession({ id: 'ar-pagination-user', name: 'A&R', role: 'ar' });
+      const req = { method: 'GET', query: { resource: 'catalog' }, headers: { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` } };
+      const res = responseMock(); await handler(req, res);
+      const payload = JSON.parse(res.chunks.join(''));
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(payload.data.length, 6200);
+      assert.strictEqual(pageCalls, 7);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   await test('A&R catalog sync writes separate works and recordings through server validation', async () => {
@@ -252,6 +290,130 @@ async function main() {
     }
   });
 
+  await test('AI Finance persists complete import rows, matching, calculation lines, exceptions, and review state', async () => {
+    const ids = {
+      import: '70000000-0000-4000-8000-000000000001',
+      song: '70000000-0000-4000-8000-000000000002',
+      recording: '70000000-0000-4000-8000-000000000003',
+      rule: '70000000-0000-4000-8000-000000000004',
+      run: '70000000-0000-4000-8000-000000000005'
+    };
+    const state = {
+      imports: [], rows: [], runs: [], lines: [], exceptions: [],
+      recordings: [{ id: ids.recording, recording_id: 'CM-R-WF', song_id: ids.song }],
+      rules: [{ id: ids.rule, rule_code: 'CM-RULE-WF', recording_id: ids.recording, payee_id: null, payee_name: 'Workflow Artist', royalty_type: 'Artist Royalty', share_percentage: 25, calculation_basis: 'Net Receipts', effective_date: '2026-01-01', end_date: null, territory: 'Worldwide', platform: 'All', currency: 'USD', contract_no: 'WF-CONTRACT' }]
+    };
+    let sequence = 10;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      const method = options.method || 'GET';
+      const body = options.body ? JSON.parse(options.body) : null;
+      if (url.includes('/gpt_audit_logs') && method === 'POST') return new Response('', { status: 201 });
+      if (url.includes('/royalty_imports?on_conflict=batch_no') && method === 'POST') {
+        const records = Array.isArray(body) ? body : [body];
+        const output = records.map(record => {
+          const existing = state.imports.find(item => item.batch_no === record.batch_no);
+          if (existing) return Object.assign(existing, record);
+          const created = Object.assign({ id: ids.import, created_at: '2026-07-21T00:00:00Z' }, record); state.imports.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/royalty_imports?batch_no=in.') && method === 'GET') return new Response(JSON.stringify(state.imports), { status: 200 });
+      if (url.includes('/royalty_imports?batch_no=eq.') && method === 'GET') return new Response(JSON.stringify(state.imports), { status: 200 });
+      if (url.includes('/recordings?recording_id=in.') && method === 'GET') return new Response(JSON.stringify(state.recordings), { status: 200 });
+      if (url.includes('/royalty_import_rows?on_conflict=import_id%2Csource_row_number') && method === 'POST') {
+        const records = Array.isArray(body) ? body : [body];
+        const output = records.map(record => {
+          const existing = state.rows.find(item => item.import_id === record.import_id && item.source_row_number === record.source_row_number);
+          if (existing) return Object.assign(existing, record);
+          const created = Object.assign({ id: `70000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}`, created_at: '2026-07-21T00:00:00Z' }, record); state.rows.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/royalty_import_rows?import_id=eq.') && method === 'GET') {
+        const rows = url.includes('offset=1000') ? [] : state.rows.map(row => Object.assign({}, row, { recordings: state.recordings.find(item => item.id === row.recording_id) || null }));
+        return new Response(JSON.stringify(rows), { status: 200 });
+      }
+      if (url.includes('/royalty_rules?status=eq.active') && method === 'GET') return new Response(JSON.stringify(url.includes('offset=1000') ? [] : state.rules), { status: 200 });
+      if (url.endsWith('/royalty_calculation_runs') && method === 'POST') {
+        const created = Object.assign({ id: ids.run, created_at: '2026-07-21T00:00:00Z', updated_at: '2026-07-21T00:00:00Z' }, body); state.runs.push(created);
+        return new Response(JSON.stringify([created]), { status: 201 });
+      }
+      if (url.includes('/royalty_calculation_runs?') && method === 'PATCH') {
+        const target = url.includes('id=eq.') ? state.runs.find(item => url.includes(encodeURIComponent(item.id))) : null;
+        if (target) Object.assign(target, body);
+        return new Response(JSON.stringify(target ? [target] : []), { status: 200 });
+      }
+      if (url.endsWith('/royalty_calculation_lines') && method === 'POST') {
+        const records = Array.isArray(body) ? body : [body];
+        const output = records.map(record => Object.assign({ id: `71000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}`, created_at: '2026-07-21T00:00:00Z' }, record));
+        state.lines.push(...output); return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/finance_exceptions?on_conflict=exception_key') && method === 'POST') {
+        const records = Array.isArray(body) ? body : [body];
+        const output = records.map(record => {
+          const existing = state.exceptions.find(item => item.exception_key === record.exception_key);
+          if (existing) return Object.assign(existing, record);
+          const created = Object.assign({ id: `72000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}`, created_at: '2026-07-21T00:00:00Z', updated_at: '2026-07-21T00:00:00Z' }, record); state.exceptions.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/finance_exceptions?id=eq.') && method === 'PATCH') {
+        const target = state.exceptions.find(item => url.includes(encodeURIComponent(item.id))); Object.assign(target, body, { updated_at: '2026-07-21T01:00:00Z' });
+        return new Response(JSON.stringify([target]), { status: 200 });
+      }
+      if (url.includes('/royalty_calculation_lines?select=') && method === 'GET') {
+        const output = url.includes('offset=1000') ? [] : state.lines.map(line => Object.assign({}, line, {
+          royalty_calculation_runs: Object.assign({}, state.runs.find(run => run.id === line.run_id), { royalty_imports: state.imports[0] }),
+          royalty_import_rows: { source_row_number: 1, raw_data: { title: 'Matched Song' } }, royalty_rules: state.rules[0], recordings: state.recordings[0]
+        }));
+        return new Response(JSON.stringify(output), { status: 200 });
+      }
+      if (url.includes('/finance_exceptions?select=') && method === 'GET') {
+        const output = url.includes('offset=1000') ? [] : state.exceptions.map(item => Object.assign({}, item, { royalty_imports: state.imports[0], royalty_calculation_runs: state.runs[0] }));
+        return new Response(JSON.stringify(output), { status: 200 });
+      }
+      throw new Error(`Unexpected workflow Supabase URL: ${url} (${method})`);
+    };
+    try {
+      const handler = require('./api/os-data');
+      const token = auth.issueSession({ id: 'finance-workflow-user', name: 'Finance', role: 'finance' });
+      const headers = { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` };
+      async function call(resource, method, body = {}) {
+        const req = { method, query: { resource }, headers, body: Object.assign({ resource }, body) };
+        const res = responseMock(); await handler(req, res); return { status: res.statusCode, body: JSON.parse(res.chunks.join('') || '{}') };
+      }
+      let result = await call('royalty_imports', 'POST', { records: [{ id: 'CM-IMP-WF', platform: 'spotify', fileName: 'workflow.csv', currency: 'USD', period: '2026 Q1', rowCount: 2, revenue: 150 }] });
+      assert.strictEqual(result.body.ok, true);
+      result = await call('import_rows', 'POST', { records: [
+        { batchId: 'CM-IMP-WF', rowIndex: 0, title: 'Matched Song', artist: 'Workflow Artist', isrc: 'WF-001', revenue: 100, currency: 'USD', period: '2026 Q1', rawData: { custom: 'preserved' } },
+        { batchId: 'CM-IMP-WF', rowIndex: 1, title: 'Unknown Song', artist: 'Unknown', isrc: '', revenue: 50, currency: 'USD', period: '2026 Q1' }
+      ] });
+      assert.strictEqual(result.body.result.saved, 2);
+      assert.strictEqual(state.rows[0].raw_data.custom, 'preserved');
+      result = await call('matching_queue', 'POST', { records: [
+        { batchId: 'CM-IMP-WF', rowIndex: 0, title: 'Matched Song', artist: 'Workflow Artist', isrc: 'WF-001', recordingId: 'CM-R-WF', confidence: 100, reason: 'ISRC 精确匹配', revenue: 100, currency: 'USD', period: '2026 Q1' },
+        { batchId: 'CM-IMP-WF', rowIndex: 1, title: 'Unknown Song', artist: 'Unknown', isrc: '', recordingId: '', confidence: 0, reason: '未找到可靠的歌曲版本', revenue: 50, currency: 'USD', period: '2026 Q1' }
+      ] });
+      assert.strictEqual(result.body.result.saved, 2);
+      result = await call('calculations', 'POST', { batchId: 'CM-IMP-WF' });
+      assert.strictEqual(result.body.ok, true);
+      assert.strictEqual(result.body.result.lines, 1);
+      assert(result.body.result.exceptions >= 1);
+      assert.strictEqual(state.lines[0].royalty_amount, 25);
+      result = await call('calculations', 'GET');
+      assert.strictEqual(result.body.data.length, 1);
+      result = await call('exceptions', 'GET');
+      assert(result.body.data.length >= 1);
+      const exceptionId = state.exceptions[0].id;
+      result = await call('exceptions', 'PATCH', { id: exceptionId, status: 'resolved', notes: '财务已核对' });
+      assert.strictEqual(result.body.exception.status, 'resolved');
+      assert.strictEqual(result.body.exception.resolution_notes, '财务已核对');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('Developer Console API is denied to Finance and available to CEO', async () => {
     const developer = require('./api/finance-debug');
     const financeToken = auth.issueSession({ id: 'finance-user', name: 'Finance', role: 'finance' });
@@ -278,9 +440,12 @@ async function main() {
       await developer(req, res);
       const payload = JSON.parse(res.chunks.join(''));
       assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(payload.tables.length, 13);
+      assert.strictEqual(payload.tables.length, 16);
       assert(payload.tables.some(table => table.name === 'songs'));
       assert(payload.tables.some(table => table.name === 'royalty_import_rows'));
+      assert(payload.tables.some(table => table.name === 'royalty_calculation_runs'));
+      assert(payload.tables.some(table => table.name === 'royalty_calculation_lines'));
+      assert(payload.tables.some(table => table.name === 'finance_exceptions'));
     } finally {
       global.fetch = originalFetch;
     }
@@ -318,12 +483,16 @@ async function main() {
 
   await test('database migration enables RLS for every sensitive department table', () => {
     const sql = fs.readFileSync(path.join(__dirname, 'supabase/cheerful-os.sql'), 'utf8');
+    const financeSql = fs.readFileSync(path.join(__dirname, 'supabase/finance-workflow-v2.sql'), 'utf8');
     ['users', 'songs', 'recordings', 'royalty_rules', 'royalty_imports', 'royalty_import_rows', 'hr_records', 'recruitment_records', 'contracts', 'legal_records'].forEach(table => {
       assert(sql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
     });
     assert(sql.includes("in ('ceo', 'finance')"));
     assert(sql.includes("in ('ceo', 'hr')"));
     assert(sql.includes("in ('ceo', 'finance', 'ar')"));
+    ['royalty_calculation_runs', 'royalty_calculation_lines', 'finance_exceptions'].forEach(table => {
+      assert(financeSql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
+    });
   });
 
   console.log('\nAll Supabase integration checks passed.');

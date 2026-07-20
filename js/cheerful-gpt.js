@@ -305,10 +305,10 @@
   function buildBusinessContext(query) {
     const recordings = typeof financeRecordings !== 'undefined' ? financeRecordings : [];
     const rules = typeof financeRules !== 'undefined' ? financeRules : [];
-    const imports = parseStorage('cm_finance_imports_v131', []);
-    const matches = parseStorage('cm_finance_matches_v140', []);
-    const calculations = parseStorage('cm_finance_calculations_v140', []);
-    const exceptions = parseStorage('cm_finance_exception_reviews_v140', []);
+    const imports = window.CheerfulFinanceImports ? window.CheerfulFinanceImports.all() : [];
+    const matches = window.CheerfulFinanceWorkflow ? window.CheerfulFinanceWorkflow.matches() : [];
+    const calculations = window.CheerfulFinanceWorkflow ? window.CheerfulFinanceWorkflow.calculations() : [];
+    const exceptions = window.CheerfulFinanceWorkflow ? window.CheerfulFinanceWorkflow.exceptions() : [];
     const hrRecords = parseStorage('cm_hr_records', []);
     const recruitmentRecords = parseStorage('cm_recruitment_records', []);
     const contracts = parseStorage('cm_legal_contracts', []);
