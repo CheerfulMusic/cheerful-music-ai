@@ -33,7 +33,7 @@ async function main() {
     const originalFetch = global.fetch;
     global.fetch = async (url) => {
       assert.ok(
-        ['/users?', '/songs?', '/royalty_rules?', '/royalty_imports?', '/royalty_import_rows?', '/royalty_calculation_runs?', '/royalty_calculation_lines?', '/finance_exceptions?'].some(part => url.includes(part)),
+        ['/users?', '/songs?', '/royalty_rules?', '/royalty_rule_imports?', '/royalty_rule_review_queue?', '/royalty_imports?', '/royalty_import_rows?', '/royalty_calculation_runs?', '/royalty_calculation_lines?', '/finance_exceptions?'].some(part => url.includes(part)),
         `Unexpected health-check URL: ${url}`
       );
       return new Response('[]', { status: 200 });
@@ -55,6 +55,8 @@ async function main() {
           users: true,
           songs: true,
           royaltyRules: true,
+          royaltyRuleImports: true,
+          royaltyRuleReviewQueue: true,
           royaltyImports: true,
           royaltyImportRows: true,
           royaltyCalculationRuns: true,
@@ -428,6 +430,77 @@ async function main() {
     }
   });
 
+  await test('Royalty Matrix import history and Needs Review queue persist through Supabase refreshes', async () => {
+    const importId = '73000000-0000-4000-8000-000000000001';
+    const reviewId = '73000000-0000-4000-8000-000000000002';
+    const recordingId = '73000000-0000-4000-8000-000000000003';
+    const state = {
+      imports: [], reviews: [],
+      recordings: [{ id: recordingId, recording_id: 'CM-R-MATRIX' }]
+    };
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      const method = options.method || 'GET';
+      const body = options.body ? JSON.parse(options.body) : null;
+      if (url.includes('/gpt_audit_logs') && method === 'POST') return new Response('', { status: 201 });
+      if (url.includes('/royalty_rule_imports?on_conflict=batch_no') && method === 'POST') {
+        const rows = Array.isArray(body) ? body : [body];
+        const output = rows.map(row => {
+          const existing = state.imports.find(item => item.batch_no === row.batch_no);
+          if (existing) return Object.assign(existing, row, { updated_at: '2026-07-21T01:00:00Z' });
+          const created = Object.assign({ id: importId, created_at: '2026-07-21T00:00:00Z', updated_at: '2026-07-21T00:00:00Z' }, row);
+          state.imports.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/royalty_rule_imports?batch_no=in.') && method === 'GET') return new Response(JSON.stringify(state.imports), { status: 200 });
+      if (url.includes('/recordings?recording_id=in.') && method === 'GET') return new Response(JSON.stringify(state.recordings), { status: 200 });
+      if (url.includes('/royalty_rule_review_queue?on_conflict=review_key') && method === 'POST') {
+        const rows = Array.isArray(body) ? body : [body];
+        const output = rows.map(row => {
+          const existing = state.reviews.find(item => item.review_key === row.review_key);
+          if (existing) return Object.assign(existing, row, { updated_at: '2026-07-21T01:00:00Z' });
+          const created = Object.assign({ id: reviewId, created_at: '2026-07-21T00:00:00Z', updated_at: '2026-07-21T00:00:00Z' }, row);
+          state.reviews.push(created); return created;
+        });
+        return new Response(JSON.stringify(output), { status: 201 });
+      }
+      if (url.includes('/royalty_rule_imports?select=') && method === 'GET') {
+        return new Response(JSON.stringify(url.includes('offset=1000') ? [] : state.imports), { status: 200 });
+      }
+      if (url.includes('/royalty_rule_review_queue?select=') && method === 'GET') {
+        const rows = url.includes('offset=1000') ? [] : state.reviews.map(row => Object.assign({}, row, {
+          royalty_rule_imports: { batch_no: state.imports[0].batch_no, original_filename: state.imports[0].original_filename },
+          recordings: state.recordings[0]
+        }));
+        return new Response(JSON.stringify(rows), { status: 200 });
+      }
+      throw new Error(`Unexpected Royalty Matrix Supabase URL: ${url} (${method})`);
+    };
+    try {
+      const handler = require('./api/os-data');
+      const token = auth.issueSession({ id: 'matrix-finance-user', name: 'Finance', role: 'finance' });
+      const headers = { origin: 'https://app.cheerfulmusic.com', cookie: `cm_gpt_session=${encodeURIComponent(token)}` };
+      async function call(resource, method, body = {}) {
+        const req = { method, query: { resource }, headers, body: Object.assign({ resource }, body) };
+        const res = responseMock(); await handler(req, res); return { status: res.statusCode, body: JSON.parse(res.chunks.join('') || '{}') };
+      }
+      let result = await call('royalty_rule_imports', 'POST', { records: [{ id: 'CM-RM-E2E', fileName: 'rules.xlsx', fileSize: 2048, total: 2, imported: 1, updated: 0, skipped: 0, failed: 0, needsReview: 1, schemaVersion: 'royalty-rule-v1' }] });
+      assert.strictEqual(result.body.ok, true);
+      result = await call('royalty_rule_reviews', 'POST', { records: [{ id: 'CM-RM-E2E-3', batchId: 'CM-RM-E2E', rowNumber: 3, reason: 'ISRC 在歌曲库中不存在', sourceData: { ISRC: 'UNKNOWN' }, recordingId: 'CM-R-MATRIX', matchMethod: 'ISRC' }] });
+      assert.strictEqual(result.body.ok, true);
+      result = await call('royalty_rule_imports', 'GET');
+      assert.strictEqual(result.body.data.length, 1);
+      assert.strictEqual(result.body.data[0].original_filename, 'rules.xlsx');
+      result = await call('royalty_rule_reviews', 'GET');
+      assert.strictEqual(result.body.data.length, 1);
+      assert.strictEqual(result.body.data[0].reason, 'ISRC 在歌曲库中不存在');
+      assert.strictEqual(result.body.data[0].source_data.ISRC, 'UNKNOWN');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   await test('Developer Console API is denied to Finance and available to CEO', async () => {
     const developer = require('./api/finance-debug');
     const financeToken = auth.issueSession({ id: 'finance-user', name: 'Finance', role: 'finance' });
@@ -454,7 +527,7 @@ async function main() {
       await developer(req, res);
       const payload = JSON.parse(res.chunks.join(''));
       assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(payload.tables.length, 16);
+      assert.strictEqual(payload.tables.length, 18);
       assert(payload.tables.some(table => table.name === 'songs'));
       assert(payload.tables.some(table => table.name === 'royalty_import_rows'));
       assert(payload.tables.some(table => table.name === 'royalty_calculation_runs'));
@@ -531,6 +604,7 @@ async function main() {
   await test('database migration enables RLS for every sensitive department table', () => {
     const sql = fs.readFileSync(path.join(__dirname, 'supabase/cheerful-os.sql'), 'utf8');
     const financeSql = fs.readFileSync(path.join(__dirname, 'supabase/finance-workflow-v2.sql'), 'utf8');
+    const matrixSql = fs.readFileSync(path.join(__dirname, 'supabase/royalty-matrix-persistence.sql'), 'utf8');
     ['users', 'songs', 'recordings', 'royalty_rules', 'royalty_imports', 'royalty_import_rows', 'hr_records', 'recruitment_records', 'contracts', 'legal_records'].forEach(table => {
       assert(sql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
     });
@@ -539,6 +613,9 @@ async function main() {
     assert(sql.includes("in ('ceo', 'finance', 'ar')"));
     ['royalty_calculation_runs', 'royalty_calculation_lines', 'finance_exceptions'].forEach(table => {
       assert(financeSql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
+    });
+    ['royalty_rule_imports', 'royalty_rule_review_queue'].forEach(table => {
+      assert(matrixSql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
     });
   });
 
@@ -552,6 +629,7 @@ async function main() {
     assert(finance.includes('收入金额字段'), 'platform import revenue mapping validation is missing');
     assert(songBulk.includes('/^[=+\\-@\\t\\r]/'), 'Song Library error export does not neutralize spreadsheet formulas');
     assert(matrixBulk.includes('/^[=+\\-@\\t\\r]/'), 'Royalty Matrix error export does not neutralize spreadsheet formulas');
+    assert(!matrixBulk.includes('localStorage'), 'Royalty Matrix history or review queue still uses browser storage');
     assert(developer.includes("operation === 'delete' && !window.confirm"), 'Developer Console deletion lacks confirmation');
   });
 

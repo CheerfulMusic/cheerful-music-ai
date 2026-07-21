@@ -3,8 +3,6 @@ console.log("Cheerful Royalty Matrix Bulk Import Loaded");
 "use strict";
 
 const SCHEMA_VERSION="royalty-rule-v1";
-const HISTORY_KEY="cm_royalty_matrix_import_history_v133";
-const REVIEW_KEY="cm_royalty_matrix_review_queue_v133";
 const roles=["Artist","Featured Artist","Lyricist","Composer","Producer","Publisher","Label","Recording Owner","Copyright Owner"];
 const royaltyTypes=["Recording Royalty","Publishing Royalty","Artist Royalty","Producer Royalty","Platform Revenue Share","Other"];
 const steps=["上传文件","字段映射","数据预览","歌曲匹配","规则校验","重复处理","导入结果"];
@@ -29,6 +27,8 @@ const fields=[
 let matrixStep=1;
 let matrixState=emptyState();
 let matrixDecisions={};
+let matrixImportHistory=[];
+let matrixReviewQueue=[];
 
 function emptyState(){
  return{fileName:"",fileSize:0,headers:[],rows:[],mapping:{},report:null,result:null,batchId:""};
@@ -41,12 +41,6 @@ function norm(value){
 }
 function normISRC(value){
  return String(value==null?"":value).toUpperCase().replace(/[^A-Z0-9]/g,"");
-}
-function safeJSON(key,fallback){
- try{return JSON.parse(localStorage.getItem(key)||"null")||fallback}catch(_){return fallback}
-}
-function saveJSON(key,value){
- localStorage.setItem(key,JSON.stringify(value));
 }
 function fileSizeLabel(size){
  if(size<1024)return size+" B";
@@ -389,18 +383,27 @@ function installEntry(){
    '<button class="primary" onclick="openFinanceModal(\'rule\')">新增分成规则</button>',
    '<div class="rmbi-entry-actions"><button class="ghost" onclick="openRoyaltyMatrixBulkImport()">批量导入版税规则</button><button class="primary" onclick="openFinanceModal(\'rule\')">新增单条分成规则</button></div>'
   );
-  return'<div class="rmbi-header"><div><h3>Royalty Matrix（版税规则）</h3><p>每条规则关联作品、录音版本、收款方、角色、版税类型、比例和有效期，可供后续计算、结算单与数据库复用。</p></div></div>'+html+renderHistory();
+  return'<div class="rmbi-header"><div><h3>Royalty Matrix（版税规则）</h3><p>每条规则关联作品、录音版本、收款方、角色、版税类型、比例和有效期，可供后续计算、结算单与数据库复用。</p></div></div>'+html+renderHistory()+renderPersistentReviewQueue();
  };
  wrapped.__royaltyMatrixWrapped=true;
  window.renderRuleManager=wrapped;
 }
 function renderHistory(){
- const history=safeJSON(HISTORY_KEY,[]);
+ const history=matrixImportHistory;
  return'<div class="rmbi-history"><div class="rmbi-history-head"><h4>Import History</h4><span class="badge">'+history.length+' 个批次</span></div>'+
   '<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>批次</th><th>文件</th><th>总行数</th><th>Imported</th><th>Updated</th><th>Skipped</th><th>Failed</th><th>Needs Review</th><th>导入时间</th></tr></thead><tbody>'+
   (history.length?history.slice(0,20).map(function(item){
    return'<tr><td>'+esc(item.id)+'</td><td>'+esc(item.fileName)+'</td><td>'+item.total+'</td><td>'+item.imported+'</td><td>'+item.updated+'</td><td>'+item.skipped+'</td><td>'+item.failed+'</td><td>'+item.needsReview+'</td><td>'+esc(item.createdAt)+'</td></tr>';
   }).join(""):'<tr><td colspan="9" class="finance-empty">尚无批量导入记录</td></tr>')+
+  '</tbody></table></div></div>';
+}
+function renderPersistentReviewQueue(){
+ const queue=matrixReviewQueue;
+ return'<div class="rmbi-history"><div class="rmbi-history-head"><h4>Needs Review 队列</h4><span class="badge">'+queue.filter(function(item){return item.status==="needs_review"}).length+' 待处理</span></div>'+
+  '<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>批次</th><th>原始行</th><th>文件</th><th>问题</th><th>状态</th><th>创建时间</th></tr></thead><tbody>'+
+  (queue.length?queue.slice(0,50).map(function(item){
+   return'<tr><td>'+esc(item.batchId)+'</td><td>'+esc(item.rowNumber)+'</td><td>'+esc(item.fileName||"—")+'</td><td>'+esc(item.reason)+'</td><td><span class="badge '+(item.status==="needs_review"?"red":"")+'">'+esc(item.status==="needs_review"?"Needs Review":item.status)+'</span></td><td>'+esc(item.createdAt)+'</td></tr>';
+  }).join(""):'<tr><td colspan="6" class="finance-empty">当前没有待审核的版税规则</td></tr>')+
   '</tbody></table></div></div>';
 }
 function ensureModal(){
@@ -592,15 +595,33 @@ window.confirmRoyaltyMatrixImport=async function(){
   showToastMessage("正在将版税规则保存到 Supabase…");
   await window.CheerfulSupabase.saveRules(changedRules);
   await window.CheerfulSupabase.refreshRules();
-  const queue=safeJSON(REVIEW_KEY,[]);
-  report.reviewItems.forEach(function(item){
-   queue.unshift({id:matrixState.batchId+"-"+item.rowNumber,batchId:matrixState.batchId,rowNumber:item.rowNumber,status:"Needs Review",reason:item.issues.join("；")||item.match.reason,sourceData:item.values.sourceRow,createdAt:new Date().toISOString()});
-  });
-  saveJSON(REVIEW_KEY,queue.slice(0,5000));
   const result={imported:report.importedItems.length,updated:report.updatedItems.length,skipped:report.skippedItems.length,failed:report.failedItems.length,needsReview:report.reviewItems.length};
-  const history=safeJSON(HISTORY_KEY,[]);
-  history.unshift(Object.assign({id:matrixState.batchId,fileName:matrixState.fileName,fileSize:matrixState.fileSize,total:report.total,createdAt:new Date().toLocaleString()},result));
-  saveJSON(HISTORY_KEY,history.slice(0,100));
+  await window.CheerfulSupabase.saveRoyaltyRuleImports([Object.assign({
+   id:matrixState.batchId,
+   fileName:matrixState.fileName,
+   fileSize:matrixState.fileSize,
+   total:report.total,
+   schemaVersion:SCHEMA_VERSION,
+   metadata:{headers:matrixState.headers,mapping:matrixState.mapping}
+  },result)]);
+  if(report.reviewItems.length){
+   await window.CheerfulSupabase.saveRoyaltyRuleReviews(report.reviewItems.map(function(item){
+    return{
+     id:matrixState.batchId+"-"+item.rowNumber,
+     batchId:matrixState.batchId,
+     rowNumber:item.rowNumber,
+     status:"needs_review",
+     reason:item.issues.join("；")||item.match.reason,
+     sourceData:item.values.sourceRow,
+     recordingId:item.match.recording&&item.match.recording.id||"",
+     matchMethod:item.match.method||""
+    };
+   }));
+  }
+  await Promise.all([
+   window.CheerfulSupabase.refreshRoyaltyRuleImports(),
+   window.CheerfulSupabase.refreshRoyaltyRuleReviews()
+  ]);
   matrixState.report=report;matrixState.result=result;matrixStep=7;renderResult();showToastMessage("Royalty Matrix 批量导入完成");
  }catch(error){
   financeRules=original;
@@ -619,9 +640,16 @@ window.__royaltyMatrixBulkImportTest={
  getState:function(){return matrixState},
  setState:function(state){matrixState=state},
  setDecisions:function(decisions){matrixDecisions=decisions||{}},
- historyKey:HISTORY_KEY,
- reviewKey:REVIEW_KEY,
+ getHistory:function(){return matrixImportHistory.slice()},
+ getReviewQueue:function(){return matrixReviewQueue.slice()},
  schemaVersion:SCHEMA_VERSION
+};
+
+window.CheerfulRoyaltyMatrixStore={
+ replaceHistory:function(records){matrixImportHistory=Array.isArray(records)?records.slice():[]},
+ replaceReviews:function(records){matrixReviewQueue=Array.isArray(records)?records.slice():[]},
+ history:function(){return matrixImportHistory.slice()},
+ reviews:function(){return matrixReviewQueue.slice()}
 };
 
 injectStyles();

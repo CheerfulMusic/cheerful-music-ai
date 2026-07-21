@@ -30,6 +30,8 @@ module.exports = async function handler(req, res) {
       users: false,
       songs: false,
       royaltyRules: false,
+      royaltyRuleImports: false,
+      royaltyRuleReviewQueue: false,
       royaltyImports: false,
       royaltyImportRows: false,
       royaltyCalculationRuns: false,
@@ -44,6 +46,8 @@ module.exports = async function handler(req, res) {
     serviceRequest('users?select=id&limit=1'),
     serviceRequest('songs?select=id&limit=1'),
     serviceRequest('royalty_rules?select=id&limit=1'),
+    serviceRequest('royalty_rule_imports?select=id&limit=1'),
+    serviceRequest('royalty_rule_review_queue?select=id&limit=1'),
     serviceRequest('royalty_imports?select=id&limit=1'),
     serviceRequest('royalty_import_rows?select=id&limit=1'),
     serviceRequest('royalty_calculation_runs?select=id&limit=1'),
@@ -53,12 +57,14 @@ module.exports = async function handler(req, res) {
   result.tables.users = checks[0].status === 'fulfilled';
   result.tables.songs = checks[1].status === 'fulfilled';
   result.tables.royaltyRules = checks[2].status === 'fulfilled';
-  result.tables.royaltyImports = checks[3].status === 'fulfilled';
-  result.tables.royaltyImportRows = checks[4].status === 'fulfilled';
-  result.tables.royaltyCalculationRuns = checks[5].status === 'fulfilled';
-  result.tables.royaltyCalculationLines = checks[6].status === 'fulfilled';
-  result.tables.financeExceptions = checks[7].status === 'fulfilled';
-  result.schemaReady = ['users', 'songs', 'royaltyRules', 'royaltyImports', 'royaltyImportRows'].every(key => result.tables[key]);
+  result.tables.royaltyRuleImports = checks[3].status === 'fulfilled';
+  result.tables.royaltyRuleReviewQueue = checks[4].status === 'fulfilled';
+  result.tables.royaltyImports = checks[5].status === 'fulfilled';
+  result.tables.royaltyImportRows = checks[6].status === 'fulfilled';
+  result.tables.royaltyCalculationRuns = checks[7].status === 'fulfilled';
+  result.tables.royaltyCalculationLines = checks[8].status === 'fulfilled';
+  result.tables.financeExceptions = checks[9].status === 'fulfilled';
+  result.schemaReady = ['users', 'songs', 'royaltyRules', 'royaltyRuleImports', 'royaltyRuleReviewQueue', 'royaltyImports', 'royaltyImportRows'].every(key => result.tables[key]);
   result.financeWorkflowReady = ['royaltyCalculationRuns', 'royaltyCalculationLines', 'financeExceptions'].every(key => result.tables[key]);
   result.ok = result.schemaReady && result.financeWorkflowReady;
   if (!result.ok) {
