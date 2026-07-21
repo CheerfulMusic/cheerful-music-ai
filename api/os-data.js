@@ -204,6 +204,62 @@ async function syncRoyaltyRules(records, user) {
   return { received: input.length, saved: saved.length, failed };
 }
 
+async function syncRoyaltyRuleImports(records, user) {
+  const createdBy = uuidOrNull(user.sub);
+  const rows = records.slice(0, MAX_BATCH).map(record => ({
+    batch_no: text(record.id || record.batchId || record.batchNo, 120),
+    original_filename: text(record.fileName || record.originalFilename, 500) || 'unknown-file',
+    file_size: Math.max(0, number(record.fileSize, 0)),
+    total_rows: Math.max(0, number(record.total, 0)),
+    imported_rows: Math.max(0, number(record.imported, 0)),
+    updated_rows: Math.max(0, number(record.updated, 0)),
+    skipped_rows: Math.max(0, number(record.skipped, 0)),
+    failed_rows: Math.max(0, number(record.failed, 0)),
+    review_rows: Math.max(0, number(record.needsReview, 0)),
+    status: number(record.failed, 0) > 0 || number(record.needsReview, 0) > 0 ? 'partial' : 'completed',
+    schema_version: text(record.schemaVersion, 80) || 'royalty-rule-v1',
+    metadata: safeRawData(record.metadata),
+    ...(createdBy ? { created_by: createdBy } : {})
+  })).filter(record => record.batch_no);
+  const saved = await upsert('royalty_rule_imports', 'batch_no', rows);
+  return { received: records.length, saved: saved.length };
+}
+
+async function syncRoyaltyRuleReviews(records) {
+  const input = records.slice(0, MAX_BATCH);
+  const batchCodes = [...new Set(input.map(record => text(record.batchId || record.batch_no, 120)).filter(Boolean))];
+  const recordingCodes = [...new Set(input.map(record => text(record.recordingId || record.recording_id, 120)).filter(Boolean))];
+  const [importResult, recordingResult] = await Promise.all([
+    batchCodes.length ? serviceRequest(`royalty_rule_imports?batch_no=in.${inFilter(batchCodes)}&select=id,batch_no`) : { data: [] },
+    recordingCodes.length ? serviceRequest(`recordings?recording_id=in.${inFilter(recordingCodes)}&select=id,recording_id`) : { data: [] }
+  ]);
+  const imports = new Map((Array.isArray(importResult.data) ? importResult.data : []).map(row => [row.batch_no, row]));
+  const recordings = new Map((Array.isArray(recordingResult.data) ? recordingResult.data : []).map(row => [row.recording_id, row]));
+  const failed = [];
+  const rows = [];
+  input.forEach((record, index) => {
+    const batchCode = text(record.batchId || record.batch_no, 120);
+    const batch = imports.get(batchCode);
+    if (!batch) {
+      failed.push({ index, batchCode, reason: '版税规则导入批次不存在' });
+      return;
+    }
+    const recordingCode = text(record.recordingId || record.recording_id, 120);
+    rows.push({
+      review_key: text(record.id || record.reviewKey, 180) || `${batchCode}-${Math.max(1, number(record.rowNumber, index + 1))}`,
+      import_id: batch.id,
+      source_row_number: Math.max(1, number(record.rowNumber, index + 1)),
+      status: 'needs_review',
+      reason: text(record.reason, 4000) || '需要人工确认',
+      source_data: safeRawData(record.sourceData),
+      matched_recording_id: recordings.get(recordingCode) && recordings.get(recordingCode).id || null,
+      match_method: text(record.matchMethod, 200) || null
+    });
+  });
+  const saved = await upsert('royalty_rule_review_queue', 'review_key', rows);
+  return { received: input.length, saved: saved.length, failed };
+}
+
 async function syncImports(records, user) {
   const uploadedBy = uuidOrNull(user.sub);
   for (const record of records.slice(0, MAX_BATCH)) {
@@ -546,6 +602,12 @@ async function readResource(resource) {
   if (resource === 'royalty_rules') {
     return readAll('royalty_rules?select=id,rule_code,recording_id,payee_id,artist_name,payee_name,role,royalty_type,share_percentage,calculation_basis,effective_date,end_date,territory,platform,currency,contract_no,status,notes,recordings(recording_id,song_id)&order=updated_at.desc');
   }
+  if (resource === 'royalty_rule_imports') {
+    return readAll('royalty_rule_imports?select=id,batch_no,original_filename,file_size,total_rows,imported_rows,updated_rows,skipped_rows,failed_rows,review_rows,status,schema_version,metadata,created_at,updated_at&order=created_at.desc', { maxRows: 10000 });
+  }
+  if (resource === 'royalty_rule_reviews') {
+    return readAll('royalty_rule_review_queue?select=id,review_key,source_row_number,status,reason,source_data,match_method,resolution_action,resolution_notes,resolved_at,created_at,updated_at,royalty_rule_imports(batch_no,original_filename),recordings(recording_id)&order=created_at.desc', { maxRows: 10000 });
+  }
   if (resource === 'royalty_imports') {
     return readAll('royalty_imports?select=id,batch_no,platform,period_start,period_end,original_filename,currency,status,total_rows,imported_rows,updated_rows,skipped_rows,failed_rows,review_rows,total_amount,metadata,created_at&order=created_at.desc', { maxRows: 10000 });
   }
@@ -601,6 +663,8 @@ async function deleteResource(resource, codes) {
 const RESOURCE_PERMISSIONS = {
   catalog: ['song_library_read', 'song_library_write'],
   royalty_rules: ['royalty_rules_read', 'royalty_rules_write'],
+  royalty_rule_imports: ['royalty_rules_read', 'royalty_rules_write'],
+  royalty_rule_reviews: ['royalty_rules_read', 'royalty_rules_write'],
   royalty_imports: ['platform_royalty_read', 'platform_royalty_write'],
   import_rows: ['platform_royalty_read', 'platform_royalty_write'],
   matching_queue: ['song_matching_read', 'song_matching_write'],
@@ -644,6 +708,8 @@ module.exports = async function handler(req, res) {
       let result;
       if (resource === 'catalog') result = await syncCatalog(records, user);
       else if (resource === 'royalty_rules') result = await syncRoyaltyRules(records, user);
+      else if (resource === 'royalty_rule_imports') result = await syncRoyaltyRuleImports(records, user);
+      else if (resource === 'royalty_rule_reviews') result = await syncRoyaltyRuleReviews(records);
       else if (resource === 'royalty_imports') result = await syncImports(records, user);
       else if (resource === 'import_rows') result = await syncImportRows(records);
       else if (resource === 'matching_queue') result = await syncMatchingQueue(records, user);
@@ -694,6 +760,26 @@ module.exports = async function handler(req, res) {
       });
       await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: 'data.exceptions.updated', metadata: { id, status } });
       return json(res, 200, { ok: true, exception: Array.isArray(result.data) ? result.data[0] : null });
+    }
+    if (req.method === 'PATCH' && resource === 'royalty_rule_reviews') {
+      const id = uuidOrNull(req.body && req.body.id);
+      const status = text(req.body && req.body.status, 30).toLowerCase();
+      if (!id || !['needs_review', 'resolved', 'dismissed'].includes(status)) return json(res, 400, { error: 'Review Queue ID 或状态无效。' });
+      const resolved = status === 'resolved' || status === 'dismissed';
+      const changes = {
+        status,
+        resolution_action: text(req.body && req.body.action, 120) || null,
+        resolution_notes: text(req.body && req.body.notes, 4000) || null,
+        resolved_by: resolved ? uuidOrNull(user.sub) : null,
+        resolved_at: resolved ? new Date().toISOString() : null
+      };
+      const result = await serviceRequest(`royalty_rule_review_queue?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(changes)
+      });
+      await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: 'data.royalty_rule_reviews.updated', metadata: { id, status } });
+      return json(res, 200, { ok: true, review: Array.isArray(result.data) ? result.data[0] : null });
     }
     return json(res, 405, { error: 'Method not allowed' });
   } catch (error) {

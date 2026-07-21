@@ -12,6 +12,8 @@ const TABLES = Object.freeze({
   payees: { label: 'Payees', order: 'updated_at', search: ['payee_code', 'name', 'email', 'country'] },
   royalty_imports: { label: 'Royalty Imports', order: 'updated_at', search: ['batch_no', 'platform', 'original_filename', 'currency', 'status'] },
   royalty_rules: { label: 'Royalty Rules', order: 'updated_at', search: ['rule_code', 'artist_name', 'payee_name', 'role', 'royalty_type', 'platform'] },
+  royalty_rule_imports: { label: 'Royalty Rule Imports', order: 'updated_at', search: ['batch_no', 'original_filename', 'status', 'schema_version'] },
+  royalty_rule_review_queue: { label: 'Royalty Rule Review Queue', order: 'updated_at', search: ['review_key', 'status', 'reason', 'match_method'] },
   royalty_import_rows: { label: 'Royalty Import Rows', order: 'created_at', search: ['match_status', 'match_method', 'platform', 'territory', 'currency', 'error_reason'] },
   royalty_calculation_runs: { label: 'Royalty Calculation Runs', order: 'updated_at', search: ['run_no', 'status', 'base_currency'] },
   royalty_calculation_lines: { label: 'Royalty Calculation Lines', order: 'created_at', search: ['payee_name', 'royalty_type', 'calculation_basis', 'currency', 'status'] },

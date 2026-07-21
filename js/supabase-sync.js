@@ -36,6 +36,66 @@
     return results;
   }
 
+  function legacyRecords(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function migrateLegacyRoyaltyMatrixStorage() {
+    if (!can('royalty_rules_write')) return;
+    const historyKey = 'cm_royalty_matrix_import_history_v133';
+    const reviewKey = 'cm_royalty_matrix_review_queue_v133';
+    const history = legacyRecords(historyKey);
+    const reviews = legacyRecords(reviewKey);
+    if (!history.length && !reviews.length) return;
+    const batches = new Map(history.map(record => [record.id, {
+      id: record.id,
+      fileName: record.fileName || 'legacy-browser-import',
+      fileSize: Number(record.fileSize || 0),
+      total: Number(record.total || 0),
+      imported: Number(record.imported || 0),
+      updated: Number(record.updated || 0),
+      skipped: Number(record.skipped || 0),
+      failed: Number(record.failed || 0),
+      needsReview: Number(record.needsReview || 0),
+      schemaVersion: 'royalty-rule-v1',
+      metadata: { migratedFrom: 'browser-storage', originalCreatedAt: record.createdAt || null }
+    }]));
+    reviews.forEach(record => {
+      if (!record.batchId || batches.has(record.batchId)) return;
+      batches.set(record.batchId, {
+        id: record.batchId,
+        fileName: 'legacy-browser-import',
+        fileSize: 0,
+        total: 1,
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        failed: 0,
+        needsReview: 1,
+        schemaVersion: 'royalty-rule-v1',
+        metadata: { migratedFrom: 'browser-storage' }
+      });
+    });
+    if (batches.size) await sendBatches('royalty_rule_imports', [...batches.values()]);
+    if (reviews.length) await sendBatches('royalty_rule_reviews', reviews.map((record, index) => ({
+      id: record.id || `${record.batchId}-${record.rowNumber || index + 1}`,
+      batchId: record.batchId,
+      rowNumber: Number(record.rowNumber || index + 1),
+      status: 'needs_review',
+      reason: record.reason || '从浏览器迁移的待审核记录',
+      sourceData: record.sourceData || {},
+      recordingId: record.recordingId || '',
+      matchMethod: record.matchMethod || ''
+    })));
+    localStorage.removeItem(historyKey);
+    localStorage.removeItem(reviewKey);
+  }
+
   async function deleteCodes(resource, codes) {
     if (!Array.isArray(codes) || !codes.length) return;
     for (const batch of chunks(codes)) {
@@ -86,6 +146,43 @@
       contractNo: record.contract_no || '',
       notes: record.notes || ''
     })).filter(record => record.id && record.recordingId);
+  }
+
+  function remoteRoyaltyRuleImports(records) {
+    return records.map(record => ({
+      id: record.batch_no,
+      fileName: record.original_filename || '',
+      fileSize: Number(record.file_size || 0),
+      total: Number(record.total_rows || 0),
+      imported: Number(record.imported_rows || 0),
+      updated: Number(record.updated_rows || 0),
+      skipped: Number(record.skipped_rows || 0),
+      failed: Number(record.failed_rows || 0),
+      needsReview: Number(record.review_rows || 0),
+      status: record.status || 'completed',
+      schemaVersion: record.schema_version || '',
+      metadata: record.metadata || {},
+      createdAt: record.created_at || ''
+    })).filter(record => record.id);
+  }
+
+  function remoteRoyaltyRuleReviews(records) {
+    return records.map(record => ({
+      id: record.id,
+      reviewKey: record.review_key,
+      batchId: record.royalty_rule_imports && record.royalty_rule_imports.batch_no || '',
+      fileName: record.royalty_rule_imports && record.royalty_rule_imports.original_filename || '',
+      rowNumber: Number(record.source_row_number || 0),
+      status: record.status || 'needs_review',
+      reason: record.reason || '',
+      sourceData: record.source_data || {},
+      recordingId: record.recordings && record.recordings.recording_id || '',
+      matchMethod: record.match_method || '',
+      resolutionAction: record.resolution_action || '',
+      resolutionNotes: record.resolution_notes || '',
+      resolvedAt: record.resolved_at || '',
+      createdAt: record.created_at || ''
+    })).filter(record => record.id && record.batchId);
   }
 
   function remoteImports(records) {
@@ -203,6 +300,24 @@
     return financeRules;
   }
 
+  async function refreshRoyaltyRuleImports() {
+    if (!can('royalty_rules_read')) return [];
+    const result = await request('royalty_rule_imports');
+    const records = remoteRoyaltyRuleImports(result.data || []);
+    if (window.CheerfulRoyaltyMatrixStore) window.CheerfulRoyaltyMatrixStore.replaceHistory(records);
+    rerenderFinance();
+    return records;
+  }
+
+  async function refreshRoyaltyRuleReviews() {
+    if (!can('royalty_rules_read')) return [];
+    const result = await request('royalty_rule_reviews');
+    const records = remoteRoyaltyRuleReviews(result.data || []);
+    if (window.CheerfulRoyaltyMatrixStore) window.CheerfulRoyaltyMatrixStore.replaceReviews(records);
+    rerenderFinance();
+    return records;
+  }
+
   async function refreshImports() {
     if (!can('platform_royalty_read')) return [];
     const result = await request('royalty_imports');
@@ -247,15 +362,16 @@
       if (!status.connected) throw new Error('Supabase 尚未连接');
       financeDataLoading = true;
       rerenderFinance();
+      await migrateLegacyRoyaltyMatrixStorage();
       const tasks = [];
       if (can('song_library_read')) tasks.push(refreshCatalog()); else financeRecordings = [];
-      if (can('royalty_rules_read')) tasks.push(refreshRules()); else financeRules = [];
+      if (can('royalty_rules_read')) tasks.push(refreshRules(), refreshRoyaltyRuleImports(), refreshRoyaltyRuleReviews()); else financeRules = [];
       if (can('platform_royalty_read')) tasks.push(refreshImports());
       if (can('song_matching_read')) tasks.push(refreshMatches());
       if (can('royalty_calculation')) tasks.push(refreshCalculations(), refreshExceptions());
       await Promise.all(tasks);
       financeDataLoading = false;
-      ['cm_finance_recordings', 'cm_finance_rules', 'cm_finance_imports_v131', 'cm_finance_preview_v131', 'cm_finance_matches_v140', 'cm_finance_calculations_v140', 'cm_finance_exception_reviews_v140'].forEach(key => localStorage.removeItem(key));
+      ['cm_finance_recordings', 'cm_finance_rules', 'cm_finance_imports_v131', 'cm_finance_preview_v131', 'cm_finance_matches_v140', 'cm_finance_calculations_v140', 'cm_finance_exception_reviews_v140', 'cm_royalty_matrix_import_history_v133', 'cm_royalty_matrix_review_queue_v133'].forEach(key => localStorage.removeItem(key));
       rerenderFinance();
     })().finally(() => { hydrationPromise = null; });
     return hydrationPromise;
@@ -285,12 +401,16 @@
     status: () => request('status'),
     refreshCatalog,
     refreshRules,
+    refreshRoyaltyRuleImports,
+    refreshRoyaltyRuleReviews,
     refreshImports,
     refreshMatches,
     refreshCalculations,
     refreshExceptions,
     saveCatalog: records => sendBatches('catalog', records),
     saveRules: records => sendBatches('royalty_rules', records),
+    saveRoyaltyRuleImports: records => sendBatches('royalty_rule_imports', records),
+    saveRoyaltyRuleReviews: records => sendBatches('royalty_rule_reviews', records),
     saveImports: records => sendBatches('royalty_imports', records),
     saveImportRows: records => sendBatches('import_rows', records),
     saveMatches: records => sendBatches('matching_queue', records),
