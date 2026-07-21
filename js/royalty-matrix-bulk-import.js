@@ -559,7 +559,11 @@ window.exportRoyaltyMatrixErrors=function(){
  if(!problems.length){alert("没有需要导出的错误或待审核行。");return}
  const sourceHeaders=matrixState.headers.slice();
  const headers=["Original Row","Error Reason"].concat(sourceHeaders);
- const quote=function(value){return'"'+String(value==null?"":value).replace(/"/g,'""')+'"'};
+ const quote=function(value){
+  var text=String(value==null?"":value);
+  if(/^[=+\-@\t\r]/.test(text))text="'"+text;
+  return'"'+text.replace(/"/g,'""')+'"'
+ };
  const lines=[headers.map(quote).join(",")].concat(problems.map(function(item){
   return[item.rowNumber,item.issues.join("；")||item.match.reason].concat(sourceHeaders.map(function(header){return item.values.sourceRow[header]})).map(quote).join(",");
  }));

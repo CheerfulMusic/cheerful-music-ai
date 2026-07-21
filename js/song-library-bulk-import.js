@@ -275,7 +275,11 @@ window.updateSongBulkMapping=function(key,header){if(header)bulkState.mapping[ke
 window.exportSongBulkErrors=function(){
  const report=buildReport(),problemItems=[...report.errors,...report.duplicates];if(!problemItems.length){alert('没有需要导出的错误行。');return}
  const headers=[...bulkState.headers,'Import Status','Import Error'];
- const quote=value=>`"${String(value??'').replace(/"/g,'""')}"`;
+ const quote=value=>{
+  let text=String(value??'');
+  if(/^[=+\-@\t\r]/.test(text))text="'"+text;
+  return `"${text.replace(/"/g,'""')}"`;
+ };
  const lines=[headers.map(quote).join(','),...problemItems.map(item=>[...bulkState.headers.map(header=>item.sourceRow?.[header]??''),statusLabel(item.state),[...item.issues,...item.warnings].join('；')].map(quote).join(','))];
  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
  link.href=url;link.download=`${bulkState.fileName.replace(/\.[^.]+$/,'')||'song-library'}-errors.csv`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)

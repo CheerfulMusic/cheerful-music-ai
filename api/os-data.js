@@ -22,6 +22,22 @@ function number(value, fallback = null) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function safeRawData(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const output = Object.create(null);
+  Object.entries(value).slice(0, 200).forEach(([rawKey, rawValue]) => {
+    const key = text(rawKey, 200);
+    if (!key || ['__proto__', 'prototype', 'constructor'].includes(key)) return;
+    if (rawValue == null || typeof rawValue === 'number' || typeof rawValue === 'boolean') output[key] = rawValue;
+    else if (typeof rawValue === 'string') output[key] = rawValue.slice(0, 10000);
+    else {
+      try { output[key] = JSON.parse(JSON.stringify(rawValue).slice(0, 10000)); }
+      catch (_) { output[key] = text(rawValue, 10000); }
+    }
+  });
+  return output;
+}
+
 function date(value) {
   const normalized = text(value, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
@@ -190,6 +206,14 @@ async function syncRoyaltyRules(records, user) {
 
 async function syncImports(records, user) {
   const uploadedBy = uuidOrNull(user.sub);
+  for (const record of records.slice(0, MAX_BATCH)) {
+    const checksum = text(record.checksum, 128).toLowerCase();
+    if (!checksum) continue;
+    const duplicate = await serviceRequest(`royalty_imports?metadata->>checksum=eq.${encodeURIComponent(checksum)}&batch_no=neq.${encodeURIComponent(text(record.id || record.batchNo, 120))}&select=batch_no&limit=1`);
+    if (Array.isArray(duplicate.data) && duplicate.data.length) {
+      throw Object.assign(new Error(`相同平台文件已存在于批次 ${duplicate.data[0].batch_no}。`), { statusCode: 409 });
+    }
+  }
   const rows = records.slice(0, MAX_BATCH).map(record => ({
     batch_no: text(record.id || record.batchNo, 120),
     platform: text(record.platform, 200) || 'unknown',
@@ -206,6 +230,8 @@ async function syncImports(records, user) {
     metadata: {
       period: text(record.period, 200),
       songCount: Math.max(0, number(record.songCount, 0)),
+      checksum: text(record.checksum, 128).toLowerCase() || null,
+      fileBytes: Math.max(0, number(record.fileBytes, 0)),
       headers: Array.isArray(record.headers) ? record.headers.slice(0, 100) : [],
       mapping: record.mapping && typeof record.mapping === 'object' ? record.mapping : {},
       preview: Array.isArray(record.rows) ? record.rows.slice(0, 20) : []
@@ -239,7 +265,7 @@ async function syncMatchingQueue(records) {
     const recording = recordings.get(recordingCode);
     const confidenceRaw = number(record.confidence, 0);
     const confidence = Math.max(0, Math.min(1, confidenceRaw > 1 ? confidenceRaw / 100 : confidenceRaw));
-    const raw = record.rawData && typeof record.rawData === 'object' ? record.rawData : {};
+    const raw = safeRawData(record.rawData);
     rows.push({
       import_id: batch.id,
       source_row_number: Math.max(1, number(record.rowIndex, index) + 1),
@@ -256,8 +282,6 @@ async function syncMatchingQueue(records) {
       platform: text(record.platform, 200) || batch.platform || null,
       territory: text(record.country || record.territory, 100) || null,
       currency: text(record.currency, 30) || null,
-      gross_amount: number(record.revenue),
-      net_amount: number(record.revenue),
       error_reason: recording ? null : '未匹配到录音版本'
     });
   });
@@ -281,7 +305,7 @@ async function syncImportRows(records) {
       failed.push({ index, batchCode, reason: '导入批次不存在' });
       return;
     }
-    const raw = record.rawData && typeof record.rawData === 'object' ? record.rawData : {};
+    const raw = safeRawData(record.rawData);
     rows.push({
       import_id: batch.id,
       source_row_number: Math.max(1, number(record.rowIndex, index) + 1),
@@ -319,7 +343,7 @@ function calculationDate(row, batch) {
   if (quarter) return `${quarter[1]}-${String((Number(quarter[2]) - 1) * 3 + 1).padStart(2, '0')}-01`;
   const month = rawPeriod.match(/(20\d{2})\D(0?[1-9]|1[0-2])/);
   if (month) return `${month[1]}-${String(Number(month[2])).padStart(2, '0')}-01`;
-  return batch.period_start || batch.period_end || new Date().toISOString().slice(0, 10);
+  return batch.period_start || batch.period_end || null;
 }
 
 function ruleApplies(rule, row, batch, effectiveDate) {
@@ -330,7 +354,9 @@ function ruleApplies(rule, row, batch, effectiveDate) {
   if (rulePlatform && !['all', 'all platforms', '全平台'].includes(rulePlatform) && rulePlatform !== platform) return false;
   const territory = text(row.territory, 100).toLowerCase();
   const ruleTerritory = text(rule.territory, 100).toLowerCase();
-  if (ruleTerritory && !['worldwide', 'global', '全球', 'all'].includes(ruleTerritory) && territory && ruleTerritory !== territory) return false;
+  if (ruleTerritory && !['worldwide', 'global', '全球', 'all'].includes(ruleTerritory)) {
+    if (!territory || ruleTerritory !== territory) return false;
+  }
   return true;
 }
 
@@ -385,27 +411,23 @@ async function runRoyaltyCalculation(batchCode, user) {
         share_percentage: rule.share_percentage,
         calculation_basis: rule.calculation_basis,
         effective_date: rule.effective_date,
-        end_date: rule.end_date
+        end_date: rule.end_date,
+        territory: rule.territory,
+        platform: rule.platform,
+        currency: rule.currency
       }))
     })
   });
   const run = Array.isArray(runResult.data) ? runResult.data[0] : null;
   if (!run) throw new Error('无法创建版税计算批次');
-  await serviceRequest(`royalty_calculation_runs?import_id=eq.${encodeURIComponent(batch.id)}&id=neq.${encodeURIComponent(run.id)}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ status: 'superseded' })
-  });
   const lines = [];
   const exceptions = [];
   const duplicateFingerprints = new Map();
-  let totalSource = 0;
   try {
     sourceRows.forEach(row => {
       const raw = row.raw_data || {};
       const title = text(raw.title, 500) || `第 ${row.source_row_number} 行`;
       const sourceAmount = number(row.net_amount == null ? row.gross_amount : row.net_amount, 0);
-      totalSource += sourceAmount;
       const keyBase = `${run.id}:${row.id}`;
       if (!row.recording_id || !['matched', 'review'].includes(row.match_status)) {
         exceptions.push(exceptionRow({ key: `${keyBase}:unmatched`, batch, row, runId: run.id, type: '无法匹配歌曲', risk: 'high', subject: title, description: '平台收入尚未对应到内部录音版本。', suggestion: '检查 ISRC、艺人和版本后进行人工匹配。' }));
@@ -415,10 +437,15 @@ async function runRoyaltyCalculation(batchCode, user) {
       if (confidence < 0.75) exceptions.push(exceptionRow({ key: `${keyBase}:confidence`, batch, row, runId: run.id, type: '低置信度匹配', risk: 'medium', subject: title, description: `当前匹配置信度为 ${Math.round(confidence * 100)}%。`, suggestion: '财务确认建议录音版本。' }));
       if (!row.currency) exceptions.push(exceptionRow({ key: `${keyBase}:currency`, batch, row, runId: run.id, type: '币种缺失', risk: 'medium', subject: title, description: '平台报表没有可用币种。', suggestion: '确认币种后重新计算。' }));
       if (sourceAmount < 0) exceptions.push(exceptionRow({ key: `${keyBase}:negative`, batch, row, runId: run.id, type: '负数版税', risk: 'medium', subject: title, description: `平台收入为 ${sourceAmount}。`, suggestion: '确认是否为退款、冲销或平台调整。' }));
-      const fingerprint = [text(raw.isrc, 100).toUpperCase(), text(row.territory, 100), sourceAmount, calculationDate(row, batch)].join('|');
-      if (duplicateFingerprints.has(fingerprint) && fingerprint.replace(/\|/g, '')) exceptions.push(exceptionRow({ key: `${keyBase}:duplicate`, batch, row, runId: run.id, type: '疑似重复收入', risk: 'high', subject: title, description: '相同 ISRC、地区、金额和期间出现多次。', suggestion: '核对平台原始报表，避免重复计算。' }));
-      else duplicateFingerprints.set(fingerprint, row.id);
       const effectiveDate = calculationDate(row, batch);
+      if (!effectiveDate) {
+        exceptions.push(exceptionRow({ key: `${keyBase}:period`, batch, row, runId: run.id, type: '收入期间缺失', risk: 'high', subject: title, description: '平台明细和导入批次均没有可用于选择合同版本的收入日期。', suggestion: '补充收入发生日期或结算期间后重新计算。' }));
+        return;
+      }
+      const duplicateIdentity = text(raw.isrc, 100).toUpperCase() || String(row.recording_id || '');
+      const fingerprint = duplicateIdentity ? [duplicateIdentity, text(row.territory, 100), sourceAmount, effectiveDate].join('|') : '';
+      if (fingerprint && duplicateFingerprints.has(fingerprint)) exceptions.push(exceptionRow({ key: `${keyBase}:duplicate`, batch, row, runId: run.id, type: '疑似重复收入', risk: 'high', subject: title, description: '同一录音、地区、金额和期间出现多次。', suggestion: '核对平台原始报表，避免重复计算。' }));
+      else if (fingerprint) duplicateFingerprints.set(fingerprint, row.id);
       const activeRules = (byRecording.get(row.recording_id) || []).filter(rule => ruleApplies(rule, row, batch, effectiveDate));
       if (!activeRules.length) {
         exceptions.push(exceptionRow({ key: `${keyBase}:rules`, batch, row, runId: run.id, type: '缺少有效分成规则', risk: 'high', subject: title, description: `收入日期 ${effectiveDate} 没有匹配到有效版税规则。`, suggestion: '在版税规则页面补充有效期、平台和地区规则。' }));
@@ -459,25 +486,57 @@ async function runRoyaltyCalculation(batchCode, user) {
     for (let index = 0; index < exceptions.length; index += MAX_BATCH) {
       await upsert('finance_exceptions', 'exception_key', exceptions.slice(index, index + MAX_BATCH));
     }
-    const totalRoyalty = lines.reduce((sum, line) => sum + number(line.royalty_amount, 0), 0);
+    const totalsByCurrency = {};
+    sourceRows.forEach(row => {
+      const currency = text(row.currency || batch.currency, 30) || 'UNKNOWN';
+      if (!totalsByCurrency[currency]) totalsByCurrency[currency] = { source: 0, royalty: 0 };
+      totalsByCurrency[currency].source += number(row.net_amount == null ? row.gross_amount : row.net_amount, 0);
+    });
+    lines.forEach(line => {
+      const currency = text(line.currency, 30) || 'UNKNOWN';
+      if (!totalsByCurrency[currency]) totalsByCurrency[currency] = { source: 0, royalty: 0 };
+      totalsByCurrency[currency].royalty += number(line.royalty_amount, 0);
+    });
+    Object.values(totalsByCurrency).forEach(total => {
+      total.source = Number(total.source.toFixed(6));
+      total.royalty = Number(total.royalty.toFixed(6));
+    });
+    const currencyCodes = Object.keys(totalsByCurrency);
+    const singleCurrency = currencyCodes.length === 1 ? currencyCodes[0] : null;
     const finalStatus = exceptions.some(item => item.risk_level === 'high') ? 'review' : 'completed';
     const updated = await serviceRequest(`royalty_calculation_runs?id=eq.${encodeURIComponent(run.id)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
         status: finalStatus,
+        base_currency: singleCurrency,
         calculated_rows: lines.length,
         exception_rows: exceptions.length,
-        total_source_amount: totalSource,
-        total_royalty_amount: totalRoyalty,
+        total_source_amount: singleCurrency ? totalsByCurrency[singleCurrency].source : 0,
+        total_royalty_amount: singleCurrency ? totalsByCurrency[singleCurrency].royalty : 0,
+        metadata: { totals_by_currency: totalsByCurrency, mixed_currencies: currencyCodes.length > 1 },
         completed_at: new Date().toISOString()
       })
     });
+    await serviceRequest(`royalty_calculation_runs?import_id=eq.${encodeURIComponent(batch.id)}&id=neq.${encodeURIComponent(run.id)}&status=neq.superseded`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'superseded' })
+    }).catch(error => console.error(JSON.stringify({ type: 'cheerful_calculation_supersede_error', importId: batch.id, message: error.message })));
     return { run: Array.isArray(updated.data) ? updated.data[0] : run, lines: lines.length, exceptions: exceptions.length };
   } catch (error) {
     await serviceRequest(`royalty_calculation_runs?id=eq.${encodeURIComponent(run.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed', completed_at: new Date().toISOString(), metadata: { error: error.message.slice(0, 500) } }) }).catch(() => {});
     throw error;
   }
+}
+
+async function latestCalculationRunIds() {
+  const runs = await readAll('royalty_calculation_runs?status=neq.superseded&select=id,import_id,created_at&order=created_at.desc', { maxRows: 10000 });
+  const latestByImport = new Map();
+  runs.forEach(run => {
+    if (run.id && run.import_id && !latestByImport.has(run.import_id)) latestByImport.set(run.import_id, run.id);
+  });
+  return [...latestByImport.values()];
 }
 
 async function readResource(resource) {
@@ -494,10 +553,14 @@ async function readResource(resource) {
     return readAll('royalty_import_rows?select=id,source_row_number,raw_data,match_status,match_method,confidence,platform,territory,usage_date,currency,gross_amount,fees,tax_amount,net_amount,error_reason,created_at,royalty_imports(batch_no),recordings(recording_id)&order=created_at.desc');
   }
   if (resource === 'calculations') {
-    return readAll('royalty_calculation_lines?select=id,payee_name,royalty_type,calculation_basis,share_percentage,source_amount,eligible_amount,royalty_amount,currency,status,calculation_trace,created_at,royalty_calculation_runs(id,run_no,status,created_at,royalty_imports(batch_no)),royalty_import_rows(source_row_number,raw_data),royalty_rules(rule_code,contract_no),recordings(recording_id)&order=created_at.desc');
+    const runIds = await latestCalculationRunIds();
+    if (!runIds.length) return [];
+    return readAll(`royalty_calculation_lines?run_id=in.${inFilter(runIds)}&select=id,payee_name,royalty_type,calculation_basis,share_percentage,source_amount,eligible_amount,royalty_amount,currency,status,calculation_trace,created_at,royalty_calculation_runs(id,run_no,status,created_at,royalty_imports(batch_no)),royalty_import_rows(source_row_number,raw_data),royalty_rules(rule_code,contract_no),recordings(recording_id)&order=created_at.desc`);
   }
   if (resource === 'exceptions') {
-    return readAll('finance_exceptions?select=id,exception_key,exception_type,risk_level,subject,description,suggestion,status,resolution_notes,resolved_at,metadata,created_at,updated_at,royalty_imports(batch_no),royalty_calculation_runs(run_no)&order=created_at.desc');
+    const runIds = await latestCalculationRunIds();
+    if (!runIds.length) return [];
+    return readAll(`finance_exceptions?calculation_run_id=in.${inFilter(runIds)}&select=id,exception_key,exception_type,risk_level,subject,description,suggestion,status,resolution_notes,resolved_at,metadata,created_at,updated_at,royalty_imports(batch_no),royalty_calculation_runs(run_no)&order=created_at.desc`);
   }
   if (resource === 'users') {
     const result = await serviceRequest('users?select=id,email,display_name,role,department,active,created_at,updated_at&order=display_name.asc&limit=1000');
@@ -636,6 +699,7 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     console.error(JSON.stringify({ type: 'cheerful_os_data_error', resource, message: error.message }));
     await writeAudit({ actorId: user.sub, actorName: user.name, actorRole: user.role, action: `data.${resource}.failed`, metadata: { method: req.method, error: error.message.slice(0, 500) } });
-    return json(res, error.statusCode || 500, { error: 'Supabase 数据操作失败。', detail: error.message.slice(0, 500) });
+    const status = error.statusCode || 500;
+    return json(res, status, { error: status < 500 ? text(error.message, 500) : 'Supabase 数据操作失败。' });
   }
 };

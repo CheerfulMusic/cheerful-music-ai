@@ -29,6 +29,11 @@ function parseCSV(text){
  return rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))
 }
 function readFile(file){return new Promise((res,rej)=>{const ext=file.name.split('.').pop().toLowerCase(),fr=new FileReader();fr.onerror=()=>rej(new Error('读取文件失败'));if(ext==='csv'){fr.onload=e=>res(parseCSV(String(e.target.result||'')));fr.readAsText(file,'UTF-8')}else if(['xlsx','xls'].includes(ext)){fr.onload=e=>{try{if(!window.XLSX)throw new Error('Excel解析组件未加载，请刷新页面');const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];res(XLSX.utils.sheet_to_json(ws,{defval:''}))}catch(err){rej(err)}};fr.readAsArrayBuffer(file)}else rej(new Error('仅支持 CSV、XLSX、XLS'))})}
+async function fileChecksum(file){
+ if(!window.crypto?.subtle)return'';
+ const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+ return Array.from(new Uint8Array(digest)).map(value=>value.toString(16).padStart(2,'0')).join('')
+}
 function summary(rows,map){const songs=new Set(),curr=new Set(),periods=new Set();let rev=0;rows.forEach(r=>{const k=map.isrc?r[map.isrc]:(map.title?r[map.title]:'');if(String(k||'').trim())songs.add(String(k).trim());const v=Number(String(map.revenue?r[map.revenue]:0).replace(/[^0-9.\-]/g,''));if(Number.isFinite(v))rev+=v;if(map.currency&&r[map.currency])curr.add(String(r[map.currency]).trim());if(map.period&&r[map.period])periods.add(String(r[map.period]).trim())});return{rowCount:rows.length,songCount:songs.size,revenue:rev,currency:[...curr].slice(0,3).join(', ')||'未识别',period:[...periods].slice(0,2).join(', ')||'待确认'}}
 function numberValue(value){const parsed=Number(String(value??'').replace(/,/g,'').replace(/[^0-9.\-]/g,''));return Number.isFinite(parsed)?parsed:0}
 function importRowRecords(batchId,platform,rows,mapping,defaultCurrency,defaultPeriod){return rows.map((row,rowIndex)=>({
@@ -52,7 +57,34 @@ window.renderRoyaltyImportManager=function(){
 function renderPreview(i){return `<div class="ri-stats"><div class="ri-stat"><span>数据行数</span><b>${i.rowCount}</b></div><div class="ri-stat"><span>识别歌曲</span><b>${i.songCount}</b></div><div class="ri-stat"><span>收入合计</span><b>${esc(i.currency)} ${Number(i.revenue).toLocaleString(undefined,{maximumFractionDigits:2})}</b></div><div class="ri-stat"><span>结算周期</span><b style="font-size:13px">${esc(i.period)}</b></div></div><div class="panel-head"><h3>字段识别与数据预览</h3><span class="finance-chip">${esc(i.fileName)}</span></div><div class="ri-map">${Object.entries(i.mapping||{}).map(([f,c])=>`<span>${esc(f)} ← ${esc(c)}</span>`).join('')||'<span>未识别到标准字段</span>'}</div><div class="finance-table-wrap"><table class="finance-table"><thead><tr>${i.headers.slice(0,8).map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${i.rows.slice(0,20).map(r=>`<tr>${i.headers.slice(0,8).map(h=>`<td>${esc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="finance-actions"><button class="ghost" onclick="setFinanceTab('matching')">下一步：AI自动匹配歌曲 →</button></div>`}
 window.selectRoyaltyPlatform=id=>{currentPlatform=id;openSection('finance')}
 window.openRoyaltyImportModal=()=>setTimeout(()=>document.getElementById('royaltyFileInput')?.click(),0)
-window.handleRoyaltyFiles=async files=>{const file=files&&files[0];if(!file)return;if(file.size>25*1024*1024){alert('当前单个文件上限为25MB');return}let id='';try{showToastMessage('正在读取并保存完整平台报表…');currentPlatform=detectPlatform(file.name);const rows=await readFile(file);if(!rows.length)throw new Error('文件中没有可识别的数据');const headers=Object.keys(rows[0]),mapping=detectColumns(headers),sum=summary(rows,mapping);id='CM-IMP-'+Date.now().toString().slice(-10);const item={id,platform:currentPlatform,fileName:file.name,headers,mapping,rows:rows.slice(0,20),status:'已解析',...sum};await window.CheerfulSupabase.saveImports([item]);await window.CheerfulSupabase.saveImportRows(importRowRecords(id,currentPlatform,rows,mapping,sum.currency,sum.period));await Promise.all([window.CheerfulSupabase.refreshImports(),window.CheerfulSupabase.refreshMatches()]);preview=imports.find(entry=>entry.id===id)||item;openSection('finance');showToastMessage(`已将 ${sum.rowCount} 行完整明细保存到 Supabase`)}catch(e){if(id)try{await window.CheerfulSupabase.deleteImports([id]);await window.CheerfulSupabase.refreshImports()}catch(_){/* 保留原始错误 */}alert(e.message||'文件解析失败')}finally{const input=document.getElementById('royaltyFileInput');if(input)input.value=''}}
+window.handleRoyaltyFiles=async files=>{
+ const file=files&&files[0];if(!file)return;
+ if(file.size>25*1024*1024){alert('当前单个文件上限为25MB');return}
+ let id='';
+ try{
+  showToastMessage('正在读取并保存完整平台报表…');
+  currentPlatform=detectPlatform(file.name);
+  const rows=await readFile(file);
+  if(!rows.length)throw new Error('文件中没有可识别的数据');
+  if(rows.length>100000)throw new Error('单次最多导入 100,000 行，请按月份或平台拆分文件');
+  const headers=Object.keys(rows[0]),mapping=detectColumns(headers);
+  if(!mapping.revenue)throw new Error('没有识别到 Revenue／Amount／收入金额字段，请先整理平台表头');
+  if(!mapping.isrc&&!mapping.title)throw new Error('至少需要 ISRC 或 Song Title／歌名字段才能进行歌曲匹配');
+  const checksum=await fileChecksum(file);
+  if(checksum&&imports.some(item=>item.checksum===checksum))throw new Error('相同文件已经导入，请勿重复上传；如需重导，请先删除原批次');
+  const sum=summary(rows,mapping);
+  const suffix=window.crypto?.randomUUID?crypto.randomUUID().slice(0,8):Math.random().toString(36).slice(2,10);
+  id=`CM-IMP-${Date.now()}-${suffix}`;
+  const item={id,platform:currentPlatform,fileName:file.name,fileBytes:file.size,checksum,headers,mapping,rows:rows.slice(0,20),status:'已解析',...sum};
+  await window.CheerfulSupabase.saveImports([item]);
+  await window.CheerfulSupabase.saveImportRows(importRowRecords(id,currentPlatform,rows,mapping,sum.currency,sum.period));
+  await Promise.all([window.CheerfulSupabase.refreshImports(),window.CheerfulSupabase.refreshMatches()]);
+  preview=imports.find(entry=>entry.id===id)||item;openSection('finance');showToastMessage(`已将 ${sum.rowCount} 行完整明细保存到 Supabase`)
+ }catch(e){
+  if(id)try{await window.CheerfulSupabase.deleteImports([id]);await window.CheerfulSupabase.refreshImports()}catch(_){/* 保留原始错误 */}
+  alert(e.message||'文件解析失败')
+ }finally{const input=document.getElementById('royaltyFileInput');if(input)input.value=''}
+}
 window.viewRoyaltyImport=id=>{preview=imports.find(i=>i.id===id)||null;openSection('finance')}
 window.deleteRoyaltyImport=async id=>{if(!confirm('确认删除这个导入批次吗？'))return;try{await window.CheerfulSupabase.deleteImports([id]);if(preview&&preview.id===id)preview=null;await window.CheerfulSupabase.refreshImports();openSection('finance');showToastMessage('导入批次已从 Supabase 删除')}catch(error){alert(`删除失败：${error.message}`)}}
 document.addEventListener('dragover',e=>{const z=document.getElementById('royaltyDropZone');if(!z)return;e.preventDefault();z.classList.add('drag')});

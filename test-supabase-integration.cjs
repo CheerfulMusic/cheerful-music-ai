@@ -336,12 +336,18 @@ async function main() {
       }
       if (url.includes('/royalty_rules?status=eq.active') && method === 'GET') return new Response(JSON.stringify(url.includes('offset=1000') ? [] : state.rules), { status: 200 });
       if (url.endsWith('/royalty_calculation_runs') && method === 'POST') {
-        const created = Object.assign({ id: ids.run, created_at: '2026-07-21T00:00:00Z', updated_at: '2026-07-21T00:00:00Z' }, body); state.runs.push(created);
+        const runId = state.runs.length ? `70000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}` : ids.run;
+        const created = Object.assign({ id: runId, created_at: `2026-07-21T00:00:0${state.runs.length}Z`, updated_at: '2026-07-21T00:00:00Z' }, body); state.runs.push(created);
         return new Response(JSON.stringify([created]), { status: 201 });
       }
+      if (url.includes('/royalty_calculation_runs?status=neq.superseded') && method === 'GET') {
+        const active = state.runs.filter(run => run.status !== 'superseded').sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)));
+        return new Response(JSON.stringify(url.includes('offset=1000') ? [] : active.map(run => ({ id: run.id, import_id: run.import_id, created_at: run.created_at }))), { status: 200 });
+      }
       if (url.includes('/royalty_calculation_runs?') && method === 'PATCH') {
-        const target = url.includes('id=eq.') ? state.runs.find(item => url.includes(encodeURIComponent(item.id))) : null;
+        const target = /[?&]id=eq\./.test(url) ? state.runs.find(item => url.includes(encodeURIComponent(item.id))) : null;
         if (target) Object.assign(target, body);
+        else if (url.includes('id=neq.')) state.runs.filter(item => !url.includes(encodeURIComponent(item.id)) && item.status !== 'superseded').forEach(item => Object.assign(item, body));
         return new Response(JSON.stringify(target ? [target] : []), { status: 200 });
       }
       if (url.endsWith('/royalty_calculation_lines') && method === 'POST') {
@@ -362,15 +368,17 @@ async function main() {
         const target = state.exceptions.find(item => url.includes(encodeURIComponent(item.id))); Object.assign(target, body, { updated_at: '2026-07-21T01:00:00Z' });
         return new Response(JSON.stringify([target]), { status: 200 });
       }
-      if (url.includes('/royalty_calculation_lines?select=') && method === 'GET') {
-        const output = url.includes('offset=1000') ? [] : state.lines.map(line => Object.assign({}, line, {
+      if (url.includes('/royalty_calculation_lines?') && url.includes('&select=') && method === 'GET') {
+        const selectedRunIds = state.runs.filter(run => run.status !== 'superseded').map(run => run.id);
+        const output = url.includes('offset=1000') ? [] : state.lines.filter(line => selectedRunIds.includes(line.run_id)).map(line => Object.assign({}, line, {
           royalty_calculation_runs: Object.assign({}, state.runs.find(run => run.id === line.run_id), { royalty_imports: state.imports[0] }),
           royalty_import_rows: { source_row_number: 1, raw_data: { title: 'Matched Song' } }, royalty_rules: state.rules[0], recordings: state.recordings[0]
         }));
         return new Response(JSON.stringify(output), { status: 200 });
       }
-      if (url.includes('/finance_exceptions?select=') && method === 'GET') {
-        const output = url.includes('offset=1000') ? [] : state.exceptions.map(item => Object.assign({}, item, { royalty_imports: state.imports[0], royalty_calculation_runs: state.runs[0] }));
+      if (url.includes('/finance_exceptions?') && url.includes('&select=') && method === 'GET') {
+        const selectedRunIds = state.runs.filter(run => run.status !== 'superseded').map(run => run.id);
+        const output = url.includes('offset=1000') ? [] : state.exceptions.filter(item => selectedRunIds.includes(item.calculation_run_id)).map(item => Object.assign({}, item, { royalty_imports: state.imports[0], royalty_calculation_runs: state.runs.find(run => run.id === item.calculation_run_id) }));
         return new Response(JSON.stringify(output), { status: 200 });
       }
       throw new Error(`Unexpected workflow Supabase URL: ${url} (${method})`);
@@ -386,7 +394,7 @@ async function main() {
       let result = await call('royalty_imports', 'POST', { records: [{ id: 'CM-IMP-WF', platform: 'spotify', fileName: 'workflow.csv', currency: 'USD', period: '2026 Q1', rowCount: 2, revenue: 150 }] });
       assert.strictEqual(result.body.ok, true);
       result = await call('import_rows', 'POST', { records: [
-        { batchId: 'CM-IMP-WF', rowIndex: 0, title: 'Matched Song', artist: 'Workflow Artist', isrc: 'WF-001', revenue: 100, currency: 'USD', period: '2026 Q1', rawData: { custom: 'preserved' } },
+        { batchId: 'CM-IMP-WF', rowIndex: 0, title: 'Matched Song', artist: 'Workflow Artist', isrc: 'WF-001', grossAmount: 120, fees: 20, netAmount: 100, currency: 'USD', period: '2026 Q1', rawData: { custom: 'preserved' } },
         { batchId: 'CM-IMP-WF', rowIndex: 1, title: 'Unknown Song', artist: 'Unknown', isrc: '', revenue: 50, currency: 'USD', period: '2026 Q1' }
       ] });
       assert.strictEqual(result.body.result.saved, 2);
@@ -396,11 +404,17 @@ async function main() {
         { batchId: 'CM-IMP-WF', rowIndex: 1, title: 'Unknown Song', artist: 'Unknown', isrc: '', recordingId: '', confidence: 0, reason: '未找到可靠的歌曲版本', revenue: 50, currency: 'USD', period: '2026 Q1' }
       ] });
       assert.strictEqual(result.body.result.saved, 2);
+      assert.strictEqual(state.rows[0].gross_amount, 120, 'matching must preserve original gross revenue');
+      assert.strictEqual(state.rows[0].fees, 20, 'matching must preserve original fees');
+      assert.strictEqual(state.rows[0].net_amount, 100, 'matching must preserve original net revenue');
       result = await call('calculations', 'POST', { batchId: 'CM-IMP-WF' });
       assert.strictEqual(result.body.ok, true);
       assert.strictEqual(result.body.result.lines, 1);
       assert(result.body.result.exceptions >= 1);
       assert.strictEqual(state.lines[0].royalty_amount, 25);
+      result = await call('calculations', 'POST', { batchId: 'CM-IMP-WF' });
+      assert.strictEqual(result.body.ok, true);
+      assert.strictEqual(state.runs.filter(run => run.status !== 'superseded').length, 1, 'only the newest calculation run may remain active');
       result = await call('calculations', 'GET');
       assert.strictEqual(result.body.data.length, 1);
       result = await call('exceptions', 'GET');
@@ -526,6 +540,27 @@ async function main() {
     ['royalty_calculation_runs', 'royalty_calculation_lines', 'finance_exceptions'].forEach(table => {
       assert(financeSql.includes(`alter table public.${table} enable row level security;`), `${table} missing RLS`);
     });
+  });
+
+  await test('finance browser modules enforce import limits, duplicate checks, safe CSV exports, and confirmed developer deletion', () => {
+    const finance = fs.readFileSync(path.join(__dirname, 'js/finance.js'), 'utf8');
+    const songBulk = fs.readFileSync(path.join(__dirname, 'js/song-library-bulk-import.js'), 'utf8');
+    const matrixBulk = fs.readFileSync(path.join(__dirname, 'js/royalty-matrix-bulk-import.js'), 'utf8');
+    const developer = fs.readFileSync(path.join(__dirname, 'js/developer-console.js'), 'utf8');
+    assert(finance.includes('100000'), 'platform import row cap is missing');
+    assert(finance.includes('fileChecksum'), 'platform import checksum is missing');
+    assert(finance.includes('收入金额字段'), 'platform import revenue mapping validation is missing');
+    assert(songBulk.includes('/^[=+\\-@\\t\\r]/'), 'Song Library error export does not neutralize spreadsheet formulas');
+    assert(matrixBulk.includes('/^[=+\\-@\\t\\r]/'), 'Royalty Matrix error export does not neutralize spreadsheet formulas');
+    assert(developer.includes("operation === 'delete' && !window.confirm"), 'Developer Console deletion lacks confirmation');
+  });
+
+  await test('production headers prevent framing and unsafe content sniffing without changing the UI', () => {
+    const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'vercel.json'), 'utf8'));
+    const headers = Object.fromEntries(config.headers[0].headers.map(item => [item.key, item.value]));
+    assert.strictEqual(headers['X-Frame-Options'], 'DENY');
+    assert.strictEqual(headers['X-Content-Type-Options'], 'nosniff');
+    assert.strictEqual(headers['Referrer-Policy'], 'no-referrer');
   });
 
   console.log('\nAll Supabase integration checks passed.');

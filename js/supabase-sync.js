@@ -101,7 +101,9 @@
       status: record.status,
       headers: record.metadata && record.metadata.headers || [],
       mapping: record.metadata && record.metadata.mapping || {},
-      rows: record.metadata && record.metadata.preview || []
+      rows: record.metadata && record.metadata.preview || [],
+      checksum: record.metadata && record.metadata.checksum || '',
+      fileBytes: Number(record.metadata && record.metadata.fileBytes || 0)
     })).filter(record => record.id);
   }
 
