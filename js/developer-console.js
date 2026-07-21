@@ -337,6 +337,10 @@
     busy = true;
     try {
       var operation = document.getElementById('devCrudOperation').value;
+      if (operation === 'delete' && !window.confirm('确认删除这条数据库记录？此操作无法在 Developer Console 中撤销。')) {
+        busy = false;
+        return;
+      }
       var recordText = document.getElementById('devCrudRecord').value.trim();
       var record = recordText ? JSON.parse(recordText) : {};
       crudResult = await request('crud', {
